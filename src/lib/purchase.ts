@@ -1,0 +1,54 @@
+import { addMonths } from '@/lib/warranty';
+
+export type Purchase = {
+  id: string;
+  productName: string;
+  storeName?: string | null;
+  purchaseDate: string;
+  price?: number | null;
+  currency?: string;
+  warrantyStartDate?: string | null;
+  warrantyEndDate?: string | null;
+  notes?: string | null;
+  receipt?: { fileName: string; contentType: string; sizeBytes: number } | null;
+};
+
+export const DURATIONS = [3, 6, 12, 24, 36];
+
+export const CONNECTION_ERROR = 'Tidak dapat terhubung ke server. Periksa koneksi dan coba lagi.';
+
+// A real calendar date in YYYY-MM-DD form (rejects 2026-02-30 and similar).
+export function isValidDate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
+// Which duration chip matches an existing record: a number of months, null
+// (unknown) or 'keep' (custom dates that no chip reproduces).
+export function initialDuration(p?: Purchase): number | null | 'keep' {
+  if (!p || !p.warrantyEndDate) return null;
+  const base = p.warrantyStartDate ?? p.purchaseDate;
+  for (const m of DURATIONS) {
+    if (addMonths(base, m) === p.warrantyEndDate) return m;
+  }
+  return 'keep';
+}
+
+// Turns an error response into a message for the user.
+export async function errorMessage(res: Response): Promise<string> {
+  if (res.status === 429) {
+    const wait = res.headers.get('Retry-After');
+    return 'Terlalu banyak permintaan. Coba lagi' + (wait ? ' dalam ' + wait + ' detik.' : ' sebentar lagi.');
+  }
+  if (res.status === 404) return 'Catatan tidak ditemukan.';
+  if (res.status === 409) return 'Akun bermasalah. Hubungi dukungan.';
+  try {
+    const data = await res.json();
+    if (data?.error?.message) return 'Gagal: ' + data.error.message;
+  } catch {
+    // body was not JSON
+  }
+  return 'Terjadi kesalahan (kode ' + res.status + ').';
+}
