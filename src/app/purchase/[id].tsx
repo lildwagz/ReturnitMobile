@@ -1,3 +1,4 @@
+import { ReceiptSection } from '@/components/receipt-section';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Button, ScrollView, View } from 'react-native';
@@ -123,7 +124,7 @@ export default function PurchaseDetail() {
         <Line label="Toko" value={p.storeName || '-'} />
         <Line label="Harga" value={formatIDR(p.price, p.currency)} />
         <Line label="Catatan" value={p.notes || '-'} />
-        <Line label="Struk" value={p.receipt ? p.receipt.fileName : 'Belum ada struk'} />
+        <ReceiptSection purchaseId={p.id} receipt={p.receipt} onChanged={load} />
         <Button title="Edit" onPress={() => setEditing(true)} />
         <Button title="Hapus" color="#C62828" onPress={confirmDelete} />
       </ScrollView>
