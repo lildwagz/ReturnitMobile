@@ -1,12 +1,13 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Button, FlatList, Pressable, Switch, View } from 'react-native';
+import { ActivityIndicator, Button, FlatList, Linking, Pressable, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { apiFetch } from '@/lib/auth';
 import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
+import { PushPermission, getPushPermission, registerForPush } from '@/lib/push';
 import { useSignedIn } from '@/lib/use-signed-in';
 
 type Prefs = {
@@ -61,9 +62,11 @@ export default function RemindersScreen() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [notesError, setNotesError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [perm, setPerm] = useState<{ status: PushPermission; canAskAgain: boolean } | null>(null);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
+    getPushPermission().then(setPerm).catch(() => {});
     setPrefsError(null);
     setNotesError(null);
     try {
@@ -167,6 +170,25 @@ export default function RemindersScreen() {
   const header = (
     <View style={{ gap: 10, paddingBottom: 12 }}>
       <ThemedText type="title">Pengingat</ThemedText>
+      {perm && perm.status !== 'granted' && (
+        <ThemedView type="backgroundElement" style={{ padding: 12, borderRadius: 12, gap: 8 }}>
+          <ThemedText>
+            Notifikasi dimatikan, jadi pengingat tidak muncul sebagai pesan di layar. Pengingat tetap
+            tersimpan di daftar di bawah.
+          </ThemedText>
+          {perm.canAskAgain ? (
+            <Button
+              title="Izinkan notifikasi"
+              onPress={async () => {
+                await registerForPush();
+                setPerm(await getPushPermission());
+              }}
+            />
+          ) : (
+            <Button title="Buka pengaturan aplikasi" onPress={() => Linking.openSettings()} />
+          )}
+        </ThemedView>
+      )}
       {prefsError && <ThemedText style={{ color: '#C62828' }}>{prefsError}</ThemedText>}
       {prefs && (
         <>

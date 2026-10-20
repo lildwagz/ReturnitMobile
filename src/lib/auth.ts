@@ -117,6 +117,15 @@ export async function login(): Promise<string | null> {
 
 export async function logout() {
   try {
+    const deviceId = await SecureStore.getItemAsync('rt_device_id');
+    if (deviceId) {
+      await apiFetch('/devices/' + deviceId, { method: 'DELETE' });
+      await SecureStore.deleteItemAsync('rt_device_id');
+    }
+  } catch {
+    // Best effort: sign-out continues even if this fails.
+  }
+  try {
     const refreshToken = await SecureStore.getItemAsync(K_REFRESH);
     if (refreshToken) {
       const discovery = await AuthSession.fetchDiscoveryAsync(ISSUER);
