@@ -230,6 +230,7 @@ export default function RemindersScreen() {
         Garansi yang perlu diperhatikan
       </ThemedText>
       {notesError && <ThemedText style={{ color: '#C62828' }}>{notesError}</ThemedText>}
+      {(prefsError || notesError) && <Button title="Coba lagi" onPress={loadAll} />}
     </View>
   );
 

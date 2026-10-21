@@ -220,9 +220,12 @@ export default function PurchasesScreen() {
 
         <ThemedText type="small">{total} catatan</ThemedText>
         {error && (
-          <ThemedText type="small" style={{ color: '#C62828' }}>
-            {error}
-          </ThemedText>
+          <View style={{ gap: 8 }}>
+            <ThemedText type="small" style={{ color: '#C62828' }}>
+              {error}
+            </ThemedText>
+            <Button title="Coba lagi" onPress={refresh} />
+          </View>
         )}
 
         <FlatList
