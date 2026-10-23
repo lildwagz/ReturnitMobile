@@ -4,8 +4,17 @@ import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
 
-export const ISSUER = 'http://localhost:8180/realms/returnit';
-export const API = 'http://localhost:8080/api/v1';
+const USE_PROD = true; // set to true to use Azam's deployed server
+export const ISSUER = USE_PROD
+  ? 'https://auth.20-255-48-53.sslip.io/realms/returnit'
+  : 'http://localhost:8180/realms/returnit';
+export const API = USE_PROD
+  ? 'https://api.20-255-48-53.sslip.io/api/v1'
+  : 'http://localhost:8080/api/v1';
+
+// export const ISSUER = 'http://localhost:8180/realms/returnit';
+// export const API = 'http://localhost:8080/api/v1';
+
 const CLIENT_ID = 'returnit-app';
 const REDIRECT = 'com.returnit.app:/oauth2redirect';
 
@@ -87,7 +96,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 }
 
 // Returns null on success, or a message to show the user.
-export async function login(): Promise<string | null> {
+export async function login(fresh = false, register = false): Promise<string | null> {
   try {
     const discovery = await AuthSession.fetchDiscoveryAsync(ISSUER);
     const request = new AuthSession.AuthRequest({
@@ -95,8 +104,13 @@ export async function login(): Promise<string | null> {
       scopes: ['openid', 'profile', 'email'],
       redirectUri: REDIRECT,
       usePKCE: true,
+      prompt: fresh ? AuthSession.Prompt.Login : undefined,
+      extraParams: fresh ? { max_age: '0' } : undefined,
     });
-    const result = await request.promptAsync(discovery);
+    const entry = register
+      ? { ...discovery, authorizationEndpoint: ISSUER + '/protocol/openid-connect/registrations' }
+      : discovery;
+    const result = await request.promptAsync(entry);
     if (result.type !== 'success') return 'Login result: ' + result.type;
     const tokens = await AuthSession.exchangeCodeAsync(
       {

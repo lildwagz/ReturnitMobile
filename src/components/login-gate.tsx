@@ -14,6 +14,7 @@ export function LoginGate() {
         <ThemedText type="title">ReturnIt</ThemedText>
         <ThemedText>Masuk untuk melihat catatan pembelian dan garansi Anda.</ThemedText>
         <Button title="Masuk" onPress={async () => setError(await login())} />
+        <Button title="Daftar akun baru" onPress={async () => setError(await login(false, true))} />        
         {error && <ThemedText type="small">{error}</ThemedText>}
       </SafeAreaView>
     </ThemedView>

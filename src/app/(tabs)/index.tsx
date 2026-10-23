@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Button, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -55,6 +55,10 @@ export default function HomeScreen() {
       setTotal(t);
       setRecent(data.items);
     } catch (err) {
+      setActive(null);
+      setExpiring(null);
+      setTotal(null);
+      setRecent([]);
       setError(err instanceof TypeError ? CONNECTION_ERROR : err instanceof Error ? err.message : CONNECTION_ERROR);
     } finally {
       setLoading(false);
@@ -67,6 +71,15 @@ export default function HomeScreen() {
     }, [signedIn, load]),
   );
 
+  useEffect(() => {
+    if (signedIn === false) {
+      setActive(null);
+      setExpiring(null);
+      setTotal(null);
+      setRecent([]);
+    }
+  }, [signedIn]);
+
   if (signedIn === null) {
     return (
       <ThemedView style={{ flex: 1, justifyContent: 'center' }}>
@@ -74,6 +87,7 @@ export default function HomeScreen() {
       </ThemedView>
     );
   }
+
   if (!signedIn) return <LoginGate />;
 
   return (

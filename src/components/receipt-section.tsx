@@ -1,7 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
-import { useState } from 'react';
-import { ActivityIndicator, Alert, Button, Linking, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Button, Image, Linking, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { apiFetch } from '@/lib/auth';
@@ -33,15 +33,57 @@ type Props = {
 export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFailed, setPreviewFailed] = useState(false);
+
+  const isImage = !!receipt && receipt.contentType.startsWith('image/');
+
+  // Gets a fresh short-lived link. Kept in memory only, never stored or logged.
+  const fetchLink = useCallback(async (): Promise<string | null> => {
+    try {
+      const res = await apiFetch('/purchases/' + purchaseId + '/receipt');
+      if (!res.ok) {
+        setMessage(await errorMessage(res));
+        return null;
+      }
+      return (await res.json()).url as string;
+    } catch {
+      setMessage(CONNECTION_ERROR);
+      return null;
+    }
+  }, [purchaseId]);
+
+  const loadPreview = useCallback(async () => {
+    setMessage(null);
+    setPreviewFailed(false);
+    setPreviewUrl(await fetchLink());
+  }, [fetchLink]);
+
+  // Images appear automatically when the screen opens or the receipt changes.
+  useEffect(() => {
+    setPreviewUrl(null);
+    if (isImage) loadPreview();
+  }, [receipt, isImage, loadPreview]);
+
+  async function openPdf() {
+    setBusy(true);
+    setMessage(null);
+    const url = await fetchLink();
+    if (url) {
+      try {
+        await Linking.openURL(url);
+      } catch {
+        setMessage('Tidak dapat membuka struk.');
+      }
+    }
+    setBusy(false);
+  }
 
   async function pickAndUpload() {
     setMessage(null);
     let picked;
     try {
-      picked = await DocumentPicker.getDocumentAsync({
-        type: ALLOWED,
-        copyToCacheDirectory: true,
-      });
+      picked = await DocumentPicker.getDocumentAsync({ type: ALLOWED, copyToCacheDirectory: true });
     } catch {
       setMessage('Tidak dapat membuka pemilih file.');
       return;
@@ -58,41 +100,16 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
       return;
     }
 
-    console.log('PICKED:', file.uri.split(':')[0], file.mimeType, file.size);
     const form = new FormData();
     form.append('file', new File(file.uri));
 
     setBusy(true);
     try {
-      const res = await apiFetch('/purchases/' + purchaseId + '/receipt', {
-        method: 'POST',
-        body: form,
-      });
+      const res = await apiFetch('/purchases/' + purchaseId + '/receipt', { method: 'POST', body: form });
       if (res.status === 201) onChanged();
       else setMessage(await uploadError(res));
-    } catch (e) {
-      console.log('UPLOAD ERROR:', String(e));
-      setMessage(CONNECTION_ERROR + ' Catatan tetap tersimpan, coba unggah lagi.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function view() {
-    setMessage(null);
-    setBusy(true);
-    try {
-      const res = await apiFetch('/purchases/' + purchaseId + '/receipt');
-      if (!res.ok) {
-        setMessage(await errorMessage(res));
-        return;
-      }
-      const data = await res.json();
-      // The link is valid only a few minutes: open it now, never store or log it.
-      console.log('RECEIPT HOST:', String(data.url).split('/')[2]);
-      await Linking.openURL(data.url);
     } catch {
-      setMessage('Tidak dapat membuka struk.');
+      setMessage(CONNECTION_ERROR + ' Catatan tetap tersimpan, coba unggah lagi.');
     } finally {
       setBusy(false);
     }
@@ -126,7 +143,25 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
       {receipt ? (
         <>
           <ThemedText>{receipt.fileName + ' (' + formatSize(receipt.sizeBytes) + ')'}</ThemedText>
-          <Button title="Lihat struk" onPress={view} disabled={busy} />
+
+          {isImage && previewUrl && !previewFailed && (
+            <Image
+              source={{ uri: previewUrl }}
+              style={{ width: '100%', height: 320, borderRadius: 12 }}
+              resizeMode="contain"
+              onError={() => setPreviewFailed(true)}
+            />
+          )}
+          {isImage && !previewUrl && !message && <ActivityIndicator />}
+          {isImage && previewFailed && (
+            <View style={{ gap: 8 }}>
+              <ThemedText style={{ color: '#C62828' }}>Pratinjau gagal dimuat.</ThemedText>
+              <Button title="Coba lagi" onPress={loadPreview} />
+            </View>
+          )}
+          {isImage && message && !previewUrl && <Button title="Coba lagi" onPress={loadPreview} />}
+
+          {!isImage && <Button title="Buka PDF" onPress={openPdf} disabled={busy} />}
           <Button title="Ganti struk" onPress={pickAndUpload} disabled={busy} />
           <Button title="Hapus struk" color="#C62828" onPress={confirmRemove} disabled={busy} />
         </>

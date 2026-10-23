@@ -1,10 +1,21 @@
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Button, FlatList, Linking, Pressable, Switch, View } from 'react-native';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Button,
+  FlatList,
+  Linking,
+  Pressable,
+  Switch,
+  TextInput,
+  View,
+  useColorScheme,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
 import { apiFetch } from '@/lib/auth';
 import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
 import { PushPermission, getPushPermission, registerForPush } from '@/lib/push';
@@ -34,6 +45,7 @@ const CHANNELS: { value: Prefs['channel']; label: string }[] = [
   { value: 'email', label: 'Email' },
   { value: 'in_app', label: 'Dalam aplikasi' },
 ];
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
@@ -54,7 +66,11 @@ function Chip({ label, selected, onPress }: { label: string; selected: boolean; 
 
 export default function RemindersScreen() {
   const router = useRouter();
+  const scheme = useColorScheme();
+  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
+  const { open } = useLocalSearchParams<{ open?: string }>();
   const signedIn = useSignedIn();
+
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [prefsError, setPrefsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -62,13 +78,15 @@ export default function RemindersScreen() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [notesError, setNotesError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const [perm, setPerm] = useState<{ status: PushPermission; canAskAgain: boolean } | null>(null);
+  const handledOpen = useRef<string | null>(null);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    getPushPermission().then(setPerm).catch(() => {});
     setPrefsError(null);
     setNotesError(null);
+    getPushPermission().then(setPerm).catch(() => {});
     try {
       const res = await apiFetch('/reminder-preferences');
       if (res.ok) setPrefs(await res.json());
@@ -77,20 +95,31 @@ export default function RemindersScreen() {
       setPrefsError(CONNECTION_ERROR);
     }
     try {
-      const res = await apiFetch('/notifications?limit=50');
+      const res = await apiFetch('/notifications?limit=50' + (unreadOnly ? '&unreadOnly=true' : ''));
       if (res.ok) setNotes(await res.json());
       else setNotesError(await errorMessage(res));
     } catch {
       setNotesError(CONNECTION_ERROR);
     }
     setLoading(false);
-  }, []);
+  }, [unreadOnly]);
 
+  // Runs when the tab comes into view, and again when the unread-only switch changes.
   useFocusEffect(
     useCallback(() => {
       if (signedIn) loadAll();
     }, [signedIn, loadAll]),
   );
+
+  // Opens the reminder that was tapped in a push notification.
+  useEffect(() => {
+    if (!open || handledOpen.current === open) return;
+    const n = notes.find((x) => x.id === open);
+    if (n) {
+      handledOpen.current = open;
+      openNote(n);
+    }
+  }, [open, notes]);
 
   function toggleDay(d: number) {
     if (!prefs) return;
@@ -99,6 +128,8 @@ export default function RemindersScreen() {
     setPrefs({ ...prefs, daysBefore: has ? prefs.daysBefore.filter((x) => x !== d) : [...prefs.daysBefore, d] });
   }
 
+  const quietOn = !!(prefs?.quietHoursStart || prefs?.quietHoursEnd);
+
   async function save() {
     if (!prefs) return;
     setSaveMsg(null);
@@ -106,14 +137,18 @@ export default function RemindersScreen() {
       setSaveMsg('Pilih minimal satu hari, atau matikan pengingat.');
       return;
     }
-    // PUT replaces everything, so every field is sent, including the ones this screen does not edit.
+    if (quietOn && !(HHMM.test(prefs.quietHoursStart ?? '') && HHMM.test(prefs.quietHoursEnd ?? ''))) {
+      setSaveMsg('Jam tenang harus berformat JJ:MM, contoh 22:00.');
+      return;
+    }
+    // PUT replaces everything, so every field is sent.
     const body: Record<string, unknown> = {
       enabled: prefs.enabled,
       daysBefore: [...prefs.daysBefore].sort((a, b) => b - a),
       channel: prefs.channel,
       timezone: prefs.timezone ?? 'Asia/Jakarta',
     };
-    if (prefs.quietHoursStart && prefs.quietHoursEnd) {
+    if (quietOn) {
       body.quietHoursStart = prefs.quietHoursStart;
       body.quietHoursEnd = prefs.quietHoursEnd;
     }
@@ -161,15 +196,26 @@ export default function RemindersScreen() {
     return (
       <ThemedView style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1, padding: 24, justifyContent: 'center' }}>
-          <ThemedText>Masuk lewat tab Pembelian untuk melihat pengingat.</ThemedText>
+          <ThemedText>Masuk lewat tab Home untuk melihat pengingat.</ThemedText>
         </SafeAreaView>
       </ThemedView>
     );
   }
 
+  const timeInput = {
+    color: colors.text,
+    backgroundColor: colors.backgroundElement,
+    borderRadius: 12,
+    padding: 10,
+    fontSize: 16,
+    minWidth: 90,
+    textAlign: 'center',
+  } as const;
+
   const header = (
     <View style={{ gap: 10, paddingBottom: 12 }}>
       <ThemedText type="title">Pengingat</ThemedText>
+
       {perm && perm.status !== 'granted' && (
         <ThemedView type="backgroundElement" style={{ padding: 12, borderRadius: 12, gap: 8 }}>
           <ThemedText>
@@ -189,6 +235,7 @@ export default function RemindersScreen() {
           )}
         </ThemedView>
       )}
+
       {prefsError && <ThemedText style={{ color: '#C62828' }}>{prefsError}</ThemedText>}
       {prefs && (
         <>
@@ -208,6 +255,7 @@ export default function RemindersScreen() {
               <Chip key={d} label={d + ' hari'} selected={prefs.daysBefore.includes(d)} onPress={() => toggleDay(d)} />
             ))}
           </View>
+
           <ThemedText type="small">Saluran pengingat</ThemedText>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {CHANNELS.map((c) => (
@@ -222,13 +270,67 @@ export default function RemindersScreen() {
               />
             ))}
           </View>
+
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <ThemedText>Jam tenang</ThemedText>
+            <Switch
+              value={quietOn}
+              onValueChange={(v) => {
+                setSaveMsg(null);
+                setPrefs({
+                  ...prefs,
+                  quietHoursStart: v ? '22:00' : null,
+                  quietHoursEnd: v ? '07:00' : null,
+                });
+              }}
+            />
+          </View>
+          {quietOn && (
+            <>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <ThemedText type="small">Mulai</ThemedText>
+                <TextInput
+                  style={timeInput}
+                  value={prefs.quietHoursStart ?? ''}
+                  onChangeText={(t) => {
+                    setSaveMsg(null);
+                    setPrefs({ ...prefs, quietHoursStart: t });
+                  }}
+                  placeholder="22:00"
+                  placeholderTextColor="#888"
+                  maxLength={5}
+                />
+                <ThemedText type="small">Selesai</ThemedText>
+                <TextInput
+                  style={timeInput}
+                  value={prefs.quietHoursEnd ?? ''}
+                  onChangeText={(t) => {
+                    setSaveMsg(null);
+                    setPrefs({ ...prefs, quietHoursEnd: t });
+                  }}
+                  placeholder="07:00"
+                  placeholderTextColor="#888"
+                  maxLength={5}
+                />
+              </View>
+              <ThemedText type="small">
+                Pengingat yang jatuh pada jam tenang dikirim setelah jam tenang berakhir.
+              </ThemedText>
+            </>
+          )}
+
           {saving ? <ActivityIndicator /> : <Button title="Simpan pengaturan" onPress={save} />}
           {saveMsg && <ThemedText type="small">{saveMsg}</ThemedText>}
         </>
       )}
+
       <ThemedText type="title" style={{ fontSize: 22, lineHeight: 28, marginTop: 12 }}>
         Garansi yang perlu diperhatikan
       </ThemedText>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <ThemedText type="small">Hanya yang belum dibaca</ThemedText>
+        <Switch value={unreadOnly} onValueChange={setUnreadOnly} />
+      </View>
       {notesError && <ThemedText style={{ color: '#C62828' }}>{notesError}</ThemedText>}
       {(prefsError || notesError) && <Button title="Coba lagi" onPress={loadAll} />}
     </View>
@@ -243,8 +345,13 @@ export default function RemindersScreen() {
           ListHeaderComponent={header}
           refreshing={loading}
           onRefresh={loadAll}
+          keyboardShouldPersistTaps="handled"
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-          ListEmptyComponent={loading ? null : <ThemedText>Belum ada pengingat.</ThemedText>}
+          ListEmptyComponent={
+            loading ? null : (
+              <ThemedText>{unreadOnly ? 'Tidak ada pengingat yang belum dibaca.' : 'Belum ada pengingat.'}</ThemedText>
+            )
+          }
           contentContainerStyle={{ paddingBottom: 120 }}
           renderItem={({ item }) => (
             <Pressable onPress={() => openNote(item)}>

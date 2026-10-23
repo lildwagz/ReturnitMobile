@@ -122,6 +122,8 @@ export default function PurchasesScreen() {
       setTotal(data.total);
     } catch (e) {
       if (id !== latest.current) return;
+      setItems([]);
+      setTotal(0);
       setError(e instanceof TypeError ? CONNECTION_ERROR : e instanceof Error ? e.message : CONNECTION_ERROR);
     } finally {
       if (id === latest.current) setLoading(false);
@@ -150,7 +152,12 @@ export default function PurchasesScreen() {
       if (signedIn) refresh();
     }, [signedIn, refresh]),
   );
-
+  useEffect(() => {
+    if (signedIn === false) {
+      setItems([]);
+      setTotal(0);
+    }
+  }, [signedIn]);
   if (signedIn === null) {
     return (
       <ThemedView style={{ flex: 1, justifyContent: 'center' }}>
