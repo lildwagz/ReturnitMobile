@@ -4,7 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const USE_PROD = true; // set to true to use Azam's deployed server
+const USE_PROD = false; // set to true to use Azam's deployed server
 export const ISSUER = USE_PROD
   ? 'https://auth.20-255-48-53.sslip.io/realms/returnit'
   : 'http://localhost:8180/realms/returnit';

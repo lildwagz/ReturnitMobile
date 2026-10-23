@@ -1,5 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Button, Image, Linking, View } from 'react-native';
 
@@ -35,6 +36,7 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewFailed, setPreviewFailed] = useState(false);
+  const [cameraBlocked, setCameraBlocked] = useState(false);
 
   const isImage = !!receipt && receipt.contentType.startsWith('image/');
 
@@ -79,8 +81,25 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
     setBusy(false);
   }
 
+  // Shared by the file picker and the camera.
+  async function uploadUri(uri: string) {
+    const form = new FormData();
+    form.append('file', new File(uri));
+    setBusy(true);
+    try {
+      const res = await apiFetch('/purchases/' + purchaseId + '/receipt', { method: 'POST', body: form });
+      if (res.status === 201) onChanged();
+      else setMessage(await uploadError(res));
+    } catch {
+      setMessage(CONNECTION_ERROR + ' Catatan tetap tersimpan, coba unggah lagi.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function pickAndUpload() {
     setMessage(null);
+    setCameraBlocked(false);
     let picked;
     try {
       picked = await DocumentPicker.getDocumentAsync({ type: ALLOWED, copyToCacheDirectory: true });
@@ -99,20 +118,38 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
       setMessage('Ukuran file melebihi 10 MB.');
       return;
     }
+    await uploadUri(file.uri);
+  }
 
-    const form = new FormData();
-    form.append('file', new File(file.uri));
-
-    setBusy(true);
+  async function takePhoto() {
+    setMessage(null);
+    setCameraBlocked(false);
+    let perm;
     try {
-      const res = await apiFetch('/purchases/' + purchaseId + '/receipt', { method: 'POST', body: form });
-      if (res.status === 201) onChanged();
-      else setMessage(await uploadError(res));
+      perm = await ImagePicker.requestCameraPermissionsAsync();
     } catch {
-      setMessage(CONNECTION_ERROR + ' Catatan tetap tersimpan, coba unggah lagi.');
-    } finally {
-      setBusy(false);
+      setMessage('Tidak dapat meminta izin kamera.');
+      return;
     }
+    if (!perm.granted) {
+      setCameraBlocked(!perm.canAskAgain);
+      setMessage('Izin kamera diperlukan untuk mengambil foto struk.');
+      return;
+    }
+    let shot;
+    try {
+      shot = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
+    } catch {
+      setMessage('Tidak dapat membuka kamera.');
+      return;
+    }
+    if (shot.canceled) return;
+    const photo = shot.assets[0];
+    if (photo.fileSize && photo.fileSize > MAX_BYTES) {
+      setMessage('Ukuran file melebihi 10 MB.');
+      return;
+    }
+    await uploadUri(photo.uri);
   }
 
   function confirmRemove() {
@@ -163,14 +200,17 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
 
           {!isImage && <Button title="Buka PDF" onPress={openPdf} disabled={busy} />}
           <Button title="Ganti struk" onPress={pickAndUpload} disabled={busy} />
+          <Button title="Ambil foto baru" onPress={takePhoto} disabled={busy} />
           <Button title="Hapus struk" color="#C62828" onPress={confirmRemove} disabled={busy} />
         </>
       ) : (
         <>
           <ThemedText>Belum ada struk</ThemedText>
           <Button title="Unggah struk" onPress={pickAndUpload} disabled={busy} />
+          <Button title="Ambil foto" onPress={takePhoto} disabled={busy} />
         </>
       )}
+      {cameraBlocked && <Button title="Buka pengaturan aplikasi" onPress={() => Linking.openSettings()} />}
       {busy && <ActivityIndicator />}
       {message && <ThemedText style={{ color: '#C62828' }}>{message}</ThemedText>}
     </View>
