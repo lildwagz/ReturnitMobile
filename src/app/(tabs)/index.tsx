@@ -1,12 +1,13 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoginGate } from '@/components/login-gate';
 import { PurchaseRow } from '@/components/purchase-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { BannerStyle, BannerStyleDark } from '@/constants/theme';
 import { apiFetch } from '@/lib/auth';
 import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
 import { useSignedIn } from '@/lib/use-signed-in';
@@ -19,8 +20,13 @@ async function totalOf(query: string): Promise<number> {
 }
 
 function Stat({ label, value, tone }: { label: string; value: number | null; tone?: 'successText' | 'warningText' }) {
+  const banners = useColorScheme() === 'dark' ? BannerStyleDark : BannerStyle;
+  // Green / amber tint for the two status cards, as in the prototype.
+  const tint = tone === 'successText' ? banners.active : tone === 'warningText' ? banners.expiring : null;
   return (
-    <ThemedView type="backgroundElement" style={{ flex: 1, padding: 14, borderRadius: 16, gap: 4 }}>
+    <ThemedView
+      type="backgroundElement"
+      style={[{ flex: 1, padding: 14, borderRadius: 16, gap: 4 }, tint && { backgroundColor: tint.bg, borderColor: tint.border }]}>
       <ThemedText type="title" themeColor={tone}>
         {value === null ? '-' : value}
       </ThemedText>
@@ -97,7 +103,11 @@ export default function HomeScreen() {
         <ScrollView
           contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 120 }}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-          <ThemedText type="title">Halo, selamat datang</ThemedText>
+          <View style={{ gap: 4 }}>
+            <ThemedText type="title">Halo, selamat datang 👋</ThemedText>
+            <ThemedText themeColor="textSecondary">Semua bukti pembelian dan garansi dalam satu tempat.</ThemedText>
+          </View>
+          <AppButton title="＋ Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
 
           {error && (
             <View style={{ gap: 8 }}>
@@ -114,20 +124,20 @@ export default function HomeScreen() {
             <Stat label="Total pembelian" value={total} />
           </View>
 
-          <AppButton title="Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
-
-          <ThemedText type="title" style={{ fontSize: 22, lineHeight: 28 }}>
-            Pembelian terbaru
-          </ThemedText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <ThemedText type="subtitle" style={{ fontSize: 18, lineHeight: 24 }}>
+              Pembelian terbaru
+            </ThemedText>
+            {recent.length > 0 && (
+              <AppButton small variant="secondary" title="Lihat semua →" onPress={() => router.push('/purchases' as never)} />
+            )}
+          </View>
           {recent.length === 0 && !loading && !error ? (
             <ThemedText>Belum ada pembelian. Mulai dengan menambahkan pembelian pertama Anda.</ThemedText>
           ) : (
             recent.map((p) => (
               <PurchaseRow key={p.id} p={p} onPress={() => router.push(('/purchase/' + p.id) as never)} />
             ))
-          )}
-          {recent.length > 0 && (
-            <AppButton variant="secondary" title="Lihat semua" onPress={() => router.push('/purchases' as never)} />
           )}
         </ScrollView>
       </SafeAreaView>

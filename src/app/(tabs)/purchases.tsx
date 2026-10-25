@@ -161,7 +161,11 @@ export default function PurchasesScreen() {
   return (
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, paddingHorizontal: 16, gap: 12 }}>
-        <ThemedText type="title">Pembelian</ThemedText>
+        <View style={{ gap: 4 }}>
+          <ThemedText type="title">Pembelian Saya</ThemedText>
+          <ThemedText themeColor="textSecondary">Cari produk dan cek status garansinya.</ThemedText>
+        </View>
+        <AppButton title="＋ Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
 
         <AppTextInput
           value={searchText}
@@ -228,18 +232,8 @@ export default function PurchasesScreen() {
             loading ? null : filtering ? (
               <ThemedText>Tidak ada hasil. Coba kata kunci atau filter lain.</ThemedText>
             ) : (
-              <View style={{ gap: 12 }}>
-                <ThemedText>Belum ada pembelian.</ThemedText>
-                <AppButton title="Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
-              </View>
+              <ThemedText>Belum ada pembelian. Tambahkan pembelian pertama Anda dengan tombol di atas.</ThemedText>
             )
-          }
-          ListFooterComponent={
-            filtering && items.length > 0 ? null : items.length > 0 ? (
-              <View style={{ paddingTop: 16 }}>
-                <AppButton title="Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
-              </View>
-            ) : null
           }
           contentContainerStyle={{ paddingBottom: 120 }}
         />

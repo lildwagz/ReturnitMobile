@@ -13,11 +13,13 @@ export function AppButton({
   onPress,
   disabled,
   variant = 'primary',
+  small,
 }: {
   title: string;
   onPress?: () => void;
   disabled?: boolean;
   variant?: Variant;
+  small?: boolean;
 }) {
   const theme = useTheme();
   const dark = useColorScheme() === 'dark';
@@ -38,12 +40,12 @@ export function AppButton({
         borderColor: look.border,
         borderWidth: 1,
         borderRadius: 12,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingVertical: small ? 8 : 12,
+        paddingHorizontal: small ? 12 : 16,
         alignItems: 'center',
         opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
       })}>
-      <ThemedText style={{ color: look.fg, fontWeight: 700 }}>{title}</ThemedText>
+      <ThemedText style={{ color: look.fg, fontWeight: 700, fontSize: small ? 13 : 16, lineHeight: small ? 18 : 24 }}>{title}</ThemedText>
     </Pressable>
   );
 }
