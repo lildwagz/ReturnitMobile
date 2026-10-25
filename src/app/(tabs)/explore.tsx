@@ -12,7 +12,6 @@ import { LANGUAGES, t, useLanguage } from '@/i18n';
 import { setAppLockEnabled, useAppLock } from '@/lib/app-lock';
 import { logout } from '@/lib/auth';
 import { exportPurchasesCsv } from '@/lib/export';
-import { shareLog } from '@/lib/share-log';
 import { showToast } from '@/lib/toast';
 import { useAccount } from '@/lib/use-account';
 import { useSignedIn } from '@/lib/use-signed-in';
@@ -52,11 +51,6 @@ export default function SettingsScreen() {
     setLockBusy(true);
     const problem = await setAppLockEnabled(on);
     setLockBusy(false);
-    if (problem) showToast(problem);
-  }
-
-  async function sendLog() {
-    const problem = await shareLog();
     if (problem) showToast(problem);
   }
 
@@ -110,11 +104,6 @@ export default function SettingsScreen() {
                   title={t('set.export')}
                   help={t('set.exportHelp')}
                   right={<AppButton small variant="secondary" title={exporting ? t('set.exporting') : t('set.exportCsv')} onPress={exportData} disabled={exporting} />}
-                />
-                <SettingRow
-                  title={t('set.log')}
-                  help={t('set.logHelp')}
-                  right={<AppButton small variant="secondary" title={t('set.logShare')} onPress={sendLog} />}
                 />
                 <SettingRow
                   title={t('set.privacy')}

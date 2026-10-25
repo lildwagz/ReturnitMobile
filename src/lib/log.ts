@@ -1,6 +1,6 @@
 // The app's log: one line per request to the server (method, path, status, time taken) and a few events such as
 // sign-in. Lines go to the console (adb logcat shows them in release builds too) and to a short list kept in memory,
-// which Settings can share as a file when something has to be investigated.
+// for the debugger.
 //
 // What is never written: the access token, passwords, push tokens and receipt links (they are replaced), and file
 // uploads. Request and response bodies hold personal data (names, shops, notes, prices), so they are written only
@@ -77,14 +77,6 @@ export async function loggedFetch(method: string, path: string, init: RequestIni
 // An event that is not a request: sign-in, sign-out, the version check, ... Values must not be personal data.
 export function logEvent(name: string, data?: Record<string, unknown>) {
   push({ type: 'event', name, ...data });
-}
-
-export function getLogText(): string {
-  return lines.join('\n') + '\n';
-}
-
-export function logLineCount(): number {
-  return lines.length;
 }
 
 export function clearLog() {

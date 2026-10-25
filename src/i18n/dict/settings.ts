@@ -44,16 +44,6 @@ export const settings = {
   },
   'set.exporting': { id: 'Menyiapkan…', en: 'Preparing…', ar: 'جارٍ التحضير…' },
   'set.exportCsv': { id: 'Ekspor CSV', en: 'Export CSV', ar: 'تصدير CSV' },
-  'set.log': { id: 'Log aplikasi', en: 'App log', ar: 'سجل التطبيق' },
-  'set.logHelp': {
-    id: 'Catatan permintaan ke server (tanpa kata sandi dan token) untuk dikirim ke tim bila ada masalah.',
-    en: 'A record of requests to the server (without passwords or tokens) to send to the team when something goes wrong.',
-    ar: 'سجل بالطلبات المرسلة إلى الخادم (بدون كلمات مرور أو رموز) لإرساله إلى الفريق عند حدوث مشكلة.',
-  },
-  'set.logShare': { id: 'Bagikan', en: 'Share', ar: 'مشاركة' },
-  'log.empty': { id: 'Belum ada log untuk dibagikan.', en: 'There is no log to share yet.', ar: 'لا يوجد سجل لمشاركته بعد.' },
-  'log.dialogTitle': { id: 'Log ReturnIt', en: 'ReturnIt log', ar: 'سجل ReturnIt' },
-  'log.cannotCreate': { id: 'Tidak dapat membuat file log.', en: 'Could not create the log file.', ar: 'تعذّر إنشاء ملف السجل.' },
   'set.privacy': { id: 'Privasi & keamanan', en: 'Privacy & security', ar: 'الخصوصية والأمان' },
   'set.privacyHelp': {
     id: 'Struk disimpan privat dan hanya dapat dibuka oleh pemilik akun.',
