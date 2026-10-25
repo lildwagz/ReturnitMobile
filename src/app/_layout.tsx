@@ -7,10 +7,14 @@ import {
 import { QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { useEffect } from 'react';
+import { AppState, useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { ToastHost } from '@/components/toast-host';
+import { UpdateGate } from '@/components/update-gate';
+import { useAppGate } from '@/lib/app-gate';
+import { checkAppConfig } from '@/lib/app-config';
 import { queryClient } from '@/lib/query-client';
 import { useSignedIn } from '@/lib/use-signed-in';
 
@@ -19,6 +23,16 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const signedIn = useSignedIn();
+  const gate = useAppGate();
+
+  // Ask the server whether this version may still be used: when the app opens and every time it comes back.
+  useEffect(() => {
+    checkAppConfig();
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') checkAppConfig();
+    });
+    return () => sub.remove();
+  }, []);
   const [fontsLoaded, fontError] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
@@ -26,6 +40,16 @@ export default function RootLayout() {
   });
   // The native splash screen stays up until the fonts are ready; a font error falls back to the system font.
   if (!fontsLoaded && !fontError) return null;
+
+  // The server said this version must be updated (or the service is in maintenance): nothing else is shown.
+  if (gate.status === 'update_required' || gate.status === 'maintenance') {
+    return (
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <AnimatedSplashOverlay />
+        <UpdateGate />
+      </ThemeProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

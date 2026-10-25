@@ -2,6 +2,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 
+import { APP_PLATFORM, APP_VERSION, noteGateFromResponse } from '@/lib/app-gate';
 import { queryClient } from '@/lib/query-client';
 import { clearReceiptCache } from '@/lib/receipt-cache';
 
@@ -90,7 +91,13 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   const send = (token: string) =>
     fetch(API + path, {
       ...init,
-      headers: { ...(init.headers as Record<string, string>), Authorization: 'Bearer ' + token },
+      headers: {
+        ...(init.headers as Record<string, string>),
+        Authorization: 'Bearer ' + token,
+        // Lets the server refuse a version it no longer supports (426) or tell us about maintenance (503).
+        'X-App-Version': APP_VERSION,
+        'X-App-Platform': APP_PLATFORM,
+      },
     });
   const token = await getAccessToken();
   if (!token) throw new Error('Not logged in');
@@ -99,6 +106,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
     const fresh = await refreshTokens();
     if (fresh) res = await send(fresh);
   }
+  await noteGateFromResponse(res);
   return res;
 }
 

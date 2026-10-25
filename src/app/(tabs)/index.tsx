@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/app-button';
 import { EmptyState } from '@/components/empty-state';
 import { PurchaseRow } from '@/components/purchase-row';
+import { UpdateBanner } from '@/components/update-banner';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BannerStyle, BannerStyleDark } from '@/constants/theme';
@@ -44,6 +45,7 @@ export default function HomeScreen() {
             <ThemedText type="title">Halo, selamat datang 👋</ThemedText>
             <ThemedText themeColor="textSecondary">Semua bukti pembelian dan garansi dalam satu tempat.</ThemedText>
           </View>
+          <UpdateBanner />
           <AppButton title="＋ Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
 
           {error && (
