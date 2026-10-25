@@ -43,10 +43,28 @@ type Note = {
 
 const DAYS = [30, 14, 7, 3, 1];
 const CHANNELS: { value: Prefs['channel']; label: string }[] = [
-  { value: 'push', label: 'Push' },
-  { value: 'email', label: 'Email' },
-  { value: 'in_app', label: 'Dalam aplikasi' },
+  { value: 'push', label: 'Notifikasi HP' },
+  { value: 'email', label: 'E-mail' },
+  { value: 'in_app', label: 'Hanya di aplikasi' },
 ];
+// One sentence that says what the current settings will do (the backend always keeps a copy in the app).
+function summarize(p: Prefs): string {
+  if (!p.enabled) return 'Pengingat dimatikan. Tidak ada pengingat yang akan dikirim.';
+  if (p.daysBefore.length === 0) return 'Pilih minimal satu hari agar pengingat dikirim.';
+  const days = [...p.daysBefore].sort((a, b) => b - a).join(', ');
+  const zone = !p.timezone || p.timezone === 'Asia/Jakarta' ? 'WIB' : p.timezone;
+  const how =
+    p.channel === 'push'
+      ? 'lewat notifikasi HP dan di Riwayat pengingat'
+      : p.channel === 'email'
+        ? 'lewat e-mail dan di Riwayat pengingat'
+        : 'hanya di Riwayat pengingat';
+  const quiet =
+    p.quietHoursStart && p.quietHoursEnd
+      ? ` Pengingat yang jatuh pada jam tenang (${p.quietHoursStart}–${p.quietHoursEnd}) dikirim setelah jam tenang selesai.`
+      : '';
+  return `Anda akan diingatkan ${days} hari sebelum garansi berakhir, pukul 09.00 ${zone}, ${how}.${quiet}`;
+}
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
@@ -258,11 +276,11 @@ export default function RemindersScreen() {
         <ThemedText themeColor="textSecondary">Atur kapan ReturnIt mengingatkan Anda.</ThemedText>
       </View>
 
-      {perm && perm.status !== 'granted' && (
+      {perm && perm.status !== 'granted' && (prefs?.channel ?? 'push') === 'push' && (
         <ThemedView type="backgroundElement" style={{ padding: 12, borderRadius: 12, gap: 8 }}>
           <ThemedText>
-            Notifikasi dimatikan, jadi pengingat tidak muncul sebagai pesan di layar. Pengingat tetap
-            tersimpan di daftar di bawah.
+            Notifikasi HP dimatikan, jadi pengingat hanya muncul di Riwayat pengingat di bawah dan tidak
+            dialihkan ke e-mail.
           </ThemedText>
           {perm.canAskAgain ? (
             <AppButton
@@ -300,7 +318,11 @@ export default function RemindersScreen() {
             />
           ))}
 
-          <ThemedText type="small">Saluran pengingat</ThemedText>
+          <ThemedText style={{ fontWeight: 700 }}>Kirim juga lewat</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Pengingat selalu muncul di Riwayat pengingat di bawah. Pilihan ini menambah satu pesan: notifikasi di HP,
+            e-mail ke akun Anda, atau tidak ada. Hanya satu yang bisa dipilih.
+          </ThemedText>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {CHANNELS.map((c) => (
               <Chip
@@ -362,6 +384,13 @@ export default function RemindersScreen() {
               </ThemedText>
             </>
           )}
+
+          <ThemedView type="backgroundElement" style={{ padding: 12, borderRadius: 12, gap: 4 }}>
+            <ThemedText type="small" style={{ fontWeight: 700 }}>
+              Ringkasan (berlaku setelah disimpan)
+            </ThemedText>
+            <ThemedText type="small">{summarize(prefs)}</ThemedText>
+          </ThemedView>
 
           {saving ? <ActivityIndicator /> : <AppButton title="Simpan pengaturan" onPress={save} />}
           {saveMsg && <ThemedText type="small">{saveMsg}</ThemedText>}
