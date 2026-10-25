@@ -4,7 +4,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Purchase } from '@/lib/purchase';
-import { daysLeft, formatIDR, warrantyStatus } from '@/lib/warranty';
+import { daysLeft, formatDate, formatIDR, warrantyStatus } from '@/lib/warranty';
 
 export function PurchaseRow({ p, onPress }: { p: Purchase; onPress: () => void }) {
   const status = warrantyStatus(p.warrantyEndDate);
@@ -15,7 +15,7 @@ export function PurchaseRow({ p, onPress }: { p: Purchase; onPress: () => void }
         <ThemedText type="title" style={{ fontSize: 20, lineHeight: 26 }}>
           {p.productName}
         </ThemedText>
-        <ThemedText type="small">{(p.storeName ? p.storeName + ' - ' : '') + p.purchaseDate}</ThemedText>
+        <ThemedText type="small">{(p.storeName ? p.storeName + ' · ' : '') + formatDate(p.purchaseDate)}</ThemedText>
         <ThemedText type="small">{formatIDR(p.price, p.currency)}</ThemedText>
         <StatusBadge status={status} />
         {left !== null && (

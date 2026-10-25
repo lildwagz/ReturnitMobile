@@ -42,6 +42,21 @@ export const StatusStyleDark = {
   unknown: { bg: '#1E293B', fg: '#CBD5E1' },
 } as const;
 
+/** Warranty banner on the detail screen: tinted background, border and text (prototype `.warranty-banner`). */
+export const BannerStyle = {
+  active: { bg: '#F0FDF4', border: '#BBF7D0', fg: '#166534' },
+  expiring: { bg: '#FFFBEB', border: '#FDE68A', fg: '#92400E' },
+  expired: { bg: '#FFF1F2', border: '#FECDD3', fg: '#9F1239' },
+  unknown: { bg: '#F8FAFC', border: '#E2E8F0', fg: '#475569' },
+} as const;
+
+export const BannerStyleDark = {
+  active: { bg: '#0F2A1B', border: '#14532D', fg: '#BBF7D0' },
+  expiring: { bg: '#2B1E08', border: '#78350F', fg: '#FDE68A' },
+  expired: { bg: '#2E1015', border: '#7F1D1D', fg: '#FECACA' },
+  unknown: { bg: '#131E33', border: '#263552', fg: '#CBD5E1' },
+} as const;
+
 /**
  * Per-theme colors. The design only specifies the light palette; the dark one keeps the same hues on a
  * navy base, with lighter text colors (primary, error, success, warning) so they stay readable on dark.

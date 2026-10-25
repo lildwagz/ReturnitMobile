@@ -59,5 +59,14 @@ export const STATUS_LABEL: Record<WarrantyStatus, string> = {
 export function formatIDR(price: number | null | undefined, currency = 'IDR'): string {
   if (price === null || price === undefined) return '-';
   const digits = Math.round(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return (currency === 'IDR' ? 'Rp ' : currency + ' ') + digits;
+  return (currency === 'IDR' ? 'Rp' : currency + ' ') + digits;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+// '2025-10-15' -> '15 Okt 2025'. Plain-date math only, so no time zone can shift the day.
+export function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'Tidak diketahui';
+  const { y, m, d } = parseDate(dateStr);
+  return d + ' ' + MONTHS[m - 1] + ' ' + y;
 }

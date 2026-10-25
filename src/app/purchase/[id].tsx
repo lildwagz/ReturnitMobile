@@ -7,15 +7,28 @@ import { PurchaseForm } from '@/components/purchase-form';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { apiFetch } from '@/lib/auth';
-import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
-import { STATUS_LABEL, daysLeft, formatIDR, warrantyStatus } from '@/lib/warranty';
+import { CONNECTION_ERROR, Purchase, errorMessage, initialDuration } from '@/lib/purchase';
+import { formatDate, formatIDR, warrantyStatus } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
+import { StatusBadge } from '@/components/status-badge';
+import { WarrantyBanner } from '@/components/warranty-banner';
 
 function Line({ label, value }: { label: string; value: string }) {
   return (
     <View style={{ gap: 2 }}>
-      <ThemedText type="small">{label}</ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        {label}
+      </ThemedText>
       <ThemedText>{value}</ThemedText>
+    </View>
+  );
+}
+
+// Half-width cell of the two-column detail grid.
+function Cell({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ width: '50%', paddingRight: 8 }}>
+      <Line label={label} value={value} />
     </View>
   );
 }
@@ -105,29 +118,43 @@ export default function PurchaseDetail() {
   }
 
   const status = warrantyStatus(p.warrantyEndDate);
-  const left = daysLeft(p.warrantyEndDate);
+  const months = initialDuration(p);
+  const duration =
+    typeof months === 'number' ? months + ' bulan' : months === 'keep' ? 'Kustom' : 'Tidak diketahui';
 
   return (
     <ThemedView style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 80 }}>
-        <ThemedText type="title" style={{ fontSize: 26, lineHeight: 32 }}>
-          {p.productName}
-        </ThemedText>
-        <Line label="Status garansi" value={STATUS_LABEL[status]} />
-        {left !== null && (
-          <Line
-            label="Sisa waktu"
-            value={left >= 0 ? left + ' hari lagi' : 'Berakhir ' + -left + ' hari lalu'}
-          />
-        )}
-        <Line label="Tanggal pembelian" value={p.purchaseDate} />
-        {p.warrantyEndDate ? <Line label="Garansi berakhir" value={p.warrantyEndDate} /> : null}
-        <Line label="Toko" value={p.storeName || '-'} />
-        <Line label="Harga" value={formatIDR(p.price, p.currency)} />
-        <Line label="Catatan" value={p.notes || '-'} />
+        <View style={{ gap: 6 }}>
+          <ThemedText type="title" style={{ fontSize: 24, lineHeight: 30 }}>
+            {p.productName}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {p.storeName || 'Toko tidak diisi'}
+          </ThemedText>
+          <StatusBadge status={status} />
+        </View>
+
+        <WarrantyBanner status={status} endDate={p.warrantyEndDate} />
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 }}>
+          <Cell label="Tanggal pembelian" value={formatDate(p.purchaseDate)} />
+          <Cell label="Durasi garansi" value={duration} />
+          <Cell label="Harga" value={formatIDR(p.price, p.currency)} />
+          <Cell label="Tanggal akhir garansi" value={formatDate(p.warrantyEndDate)} />
+        </View>
+        {p.notes ? <Line label="Catatan" value={p.notes} /> : null}
+
         <ReceiptSection purchaseId={p.id} receipt={p.receipt} onChanged={load} />
-        <AppButton variant="secondary" title="Edit" onPress={() => setEditing(true)} />
-        <AppButton title="Hapus" variant="danger" onPress={confirmDelete} />
+
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flex: 1 }}>
+            <AppButton variant="secondary" title="Edit" onPress={() => setEditing(true)} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <AppButton title="Hapus" variant="danger" onPress={confirmDelete} />
+          </View>
+        </View>
       </ScrollView>
     </ThemedView>
   );

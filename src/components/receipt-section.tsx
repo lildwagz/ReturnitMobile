@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { useTheme } from '@/hooks/use-theme';
 import { apiFetch } from '@/lib/auth';
 import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
 import { AppButton } from '@/components/app-button';
@@ -14,6 +16,7 @@ type Props = {
 };
 
 export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
+  const theme = useTheme();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -107,12 +110,26 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
   }
 
   return (
-    <View style={{ gap: 8 }}>
-      <ThemedText type="small">Struk</ThemedText>
+    <ThemedView type="backgroundElement" style={{ borderRadius: 16, padding: 14, gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <ThemedView
+          type="background"
+          style={{ width: 50, height: 58, borderRadius: 8, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' }}>
+          <ThemedText themeColor="textSecondary" style={{ fontSize: 22 }}>
+            ▤
+          </ThemedText>
+        </ThemedView>
+        <View style={{ flex: 1 }}>
+          <ThemedText style={{ fontWeight: 700 }}>Struk pembelian</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {receipt ? receipt.fileName + ' (' + formatSize(receipt.sizeBytes) + ')' : 'Belum ada struk terlampir'}
+          </ThemedText>
+        </View>
+        {receipt && !isImage && <AppButton variant="secondary" title="Lihat" onPress={openPdf} disabled={busy} />}
+        {!receipt && <AppButton variant="secondary" title="Tambah" onPress={pickAndUpload} disabled={busy} />}
+      </View>
       {receipt ? (
         <>
-          <ThemedText>{receipt.fileName + ' (' + formatSize(receipt.sizeBytes) + ')'}</ThemedText>
-
           {isImage && previewUrl && !previewFailed && (
             <Image
               source={{ uri: previewUrl }}
@@ -130,21 +147,16 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
           )}
           {isImage && message && !previewUrl && <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />}
 
-          {!isImage && <AppButton variant="secondary" title="Buka PDF" onPress={openPdf} disabled={busy} />}
           <AppButton variant="secondary" title="Ganti struk" onPress={pickAndUpload} disabled={busy} />
           <AppButton variant="secondary" title="Ambil foto baru" onPress={takePhoto} disabled={busy} />
           <AppButton title="Hapus struk" variant="danger" onPress={confirmRemove} disabled={busy} />
         </>
       ) : (
-        <>
-          <ThemedText>Belum ada struk</ThemedText>
-          <AppButton title="Unggah struk" onPress={pickAndUpload} disabled={busy} />
-          <AppButton variant="secondary" title="Ambil foto" onPress={takePhoto} disabled={busy} />
-        </>
+        <AppButton variant="secondary" title="Ambil foto" onPress={takePhoto} disabled={busy} />
       )}
       {cameraBlocked && <AppButton variant="secondary" title="Buka pengaturan aplikasi" onPress={() => Linking.openSettings()} />}
       {busy && <ActivityIndicator />}
       {message && <ThemedText themeColor="errorText">{message}</ThemedText>}
-    </View>
+    </ThemedView>
   );
 }

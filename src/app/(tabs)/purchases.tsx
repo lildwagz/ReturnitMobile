@@ -17,7 +17,7 @@ import { Brand, Colors } from '@/constants/theme';
 import { apiFetch, login } from '@/lib/auth';
 import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
 import { useSignedIn } from '@/lib/use-signed-in';
-import { daysLeft, formatIDR, warrantyStatus } from '@/lib/warranty';
+import { daysLeft, formatDate, formatIDR, warrantyStatus } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { AppTextInput } from '@/components/app-text-input';
 
@@ -40,7 +40,7 @@ function Row({ p, onPress }: { p: Purchase; onPress: () => void }) {
         <ThemedText type="title" style={{ fontSize: 20, lineHeight: 26 }}>
           {p.productName}
         </ThemedText>
-        <ThemedText type="small">{(p.storeName ? p.storeName + ' - ' : '') + p.purchaseDate}</ThemedText>
+        <ThemedText type="small">{(p.storeName ? p.storeName + ' · ' : '') + formatDate(p.purchaseDate)}</ThemedText>
         <ThemedText type="small">{formatIDR(p.price, p.currency)}</ThemedText>
         <StatusBadge status={status} />
         {left !== null && (
