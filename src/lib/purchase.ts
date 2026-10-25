@@ -1,4 +1,4 @@
-import { addMonths } from '@/lib/warranty';
+import { addMonths, daysBetween } from '@/lib/warranty';
 
 export type Purchase = {
   id: string;
@@ -9,11 +9,23 @@ export type Purchase = {
   currency?: string;
   warrantyStartDate?: string | null;
   warrantyEndDate?: string | null;
+  // The last day the shop takes the product back (optional).
+  returnDeadline?: string | null;
   notes?: string | null;
   receipt?: { fileName: string; contentType: string; sizeBytes: number } | null;
 };
 
 export const DURATIONS = [3, 6, 12, 24, 36];
+
+// Return periods offered in the form, in days after the purchase date.
+export const RETURN_CHOICES = [7, 14, 30];
+
+// Which return choice matches an existing record: a number of days, null (no deadline) or 'keep' (a custom date).
+export function initialReturnDays(p?: Purchase): number | null | 'keep' {
+  if (!p || !p.returnDeadline) return null;
+  const days = daysBetween(p.purchaseDate, p.returnDeadline);
+  return RETURN_CHOICES.includes(days) ? days : 'keep';
+}
 
 export const CONNECTION_ERROR = 'Tidak dapat terhubung ke server. Periksa koneksi dan coba lagi.';
 

@@ -11,6 +11,18 @@ function parseDate(s: string) {
   return { y, m, d };
 }
 
+// '2026-11-30' + 3 days = '2026-12-03' (plain-date math, no time zone involved).
+export function addDays(dateStr: string, days: number): string {
+  const { y, m, d } = parseDate(dateStr);
+  const t = new Date(Date.UTC(y, m - 1, d + days));
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+}
+
+// Whole days from a to b (negative when b is earlier).
+export function daysBetween(a: string, b: string): number {
+  return dayNumber(b) - dayNumber(a);
+}
+
 // Days since a fixed point, using UTC math on plain dates so time zones and
 // daylight saving never shift the result.
 function dayNumber(s: string) {

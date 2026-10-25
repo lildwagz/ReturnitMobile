@@ -23,29 +23,28 @@ export function useRefetchStaleOnFocus(queryKey: readonly unknown[]) {
 
 // ---- Home ----
 
-function countQuery(status: string, enabled: boolean) {
-  return {
-    queryKey: keys.purchaseCount(status),
-    enabled,
-    queryFn: async () =>
-      (await apiJson<PurchasePage>('/purchases?' + (status ? `warrantyStatus=${status}&` : '') + 'pageSize=1')).total,
-  };
-}
+export type SummaryItem = { id: string; productName: string; date: string };
+export type Summary = {
+  counts: { active: number; expiring: number; expired: number; unknown: number; total: number };
+  coveredValue: { currency: string; amount: number }[];
+  nextExpiring: SummaryItem | null;
+  nextReturn: SummaryItem | null;
+};
 
+// Home: one call for the counts, the covered value and the next dates, one for the newest purchases.
 export function useHomeData(enabled: boolean) {
-  const active = useQuery(countQuery('active', enabled));
-  const expiring = useQuery(countQuery('expiring', enabled));
-  const total = useQuery(countQuery('', enabled));
+  const summary = useQuery({ queryKey: keys.summary, enabled, queryFn: () => apiJson<Summary>('/summary') });
   const recent = useQuery({
     queryKey: keys.recent,
     enabled,
     queryFn: async () => (await apiJson<PurchasePage>('/purchases?pageSize=5')).items,
   });
-  const all = [active, expiring, total, recent];
+  const all = [summary, recent];
   return {
-    active: active.data ?? null,
-    expiring: expiring.data ?? null,
-    total: total.data ?? null,
+    summary: summary.data ?? null,
+    active: summary.data?.counts.active ?? null,
+    expiring: summary.data?.counts.expiring ?? null,
+    total: summary.data?.counts.total ?? null,
     recent: recent.data ?? [],
     error: all.find((q) => q.error)?.error?.message ?? null,
     loading: all.some((q) => q.isFetching),

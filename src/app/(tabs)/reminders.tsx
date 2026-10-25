@@ -24,6 +24,9 @@ import { PushPermission, getPushPermission, registerForPush } from '@/lib/push';
 import { useSignedIn } from '@/lib/use-signed-in';
 import { AppButton } from '@/components/app-button';
 import { AppTextInput } from '@/components/app-text-input';
+import { SnoozeChoice, SnoozeSheet } from '@/components/snooze-sheet';
+import { formatDate } from '@/lib/warranty';
+import { showToast } from '@/lib/toast';
 
 type Prefs = {
   enabled: boolean;
@@ -37,6 +40,7 @@ type Prefs = {
 type Note = {
   id: string;
   purchaseId?: string | null;
+  kind?: 'warranty' | 'return';
   title: string;
   body: string;
   createdAt: string;
@@ -208,6 +212,38 @@ export default function RemindersScreen() {
       setSaveMsg(CONNECTION_ERROR);
     } finally {
       setSaving(false);
+    }
+  }
+
+  // "Remind me again": the server marks this reminder read and schedules a copy (tomorrow, in 3 days, next week).
+  const [snoozing, setSnoozing] = useState<Note | null>(null);
+  const [snoozeBusy, setSnoozeBusy] = useState(false);
+
+  async function snooze(choice: SnoozeChoice) {
+    if (!snoozing) return;
+    setSnoozeBusy(true);
+    try {
+      const res = await apiFetch('/notifications/' + snoozing.id + '/snooze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ until: choice }),
+      });
+      if (res.ok) {
+        const at = new Date((await res.json()).scheduledAt);
+        const day = at.getFullYear() + '-' + String(at.getMonth() + 1).padStart(2, '0') + '-' + String(at.getDate()).padStart(2, '0');
+        const time = String(at.getHours()).padStart(2, '0') + '.' + String(at.getMinutes()).padStart(2, '0');
+        showToast('Diingatkan lagi ' + formatDate(day) + ' pukul ' + time + '.');
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      } else if (res.status === 422) {
+        showToast('Pengingat ini tidak bisa ditunda lagi (tanggalnya terlalu dekat atau sudah berubah).');
+      } else {
+        showToast(await errorMessage(res));
+      }
+    } catch {
+      showToast(CONNECTION_ERROR);
+    } finally {
+      setSnoozeBusy(false);
+      setSnoozing(null);
     }
   }
 
@@ -394,6 +430,7 @@ export default function RemindersScreen() {
   return (
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, paddingHorizontal: 16 }}>
+        <SnoozeSheet visible={snoozing !== null} busy={snoozeBusy} onPick={snooze} onClose={() => setSnoozing(null)} />
         <FlatList
           data={notes}
           keyExtractor={(n) => n.id}
@@ -425,6 +462,11 @@ export default function RemindersScreen() {
                 <ThemedText style={{ fontWeight: item.read ? '400' : '700' }}>{item.title}</ThemedText>
                 <ThemedText type="small">{item.body}</ThemedText>
                 <ThemedText type="small">{new Date(item.createdAt).toLocaleString()}</ThemedText>
+                {item.purchaseId ? (
+                  <View style={{ alignSelf: 'flex-start', marginTop: 6 }}>
+                    <AppButton small variant="secondary" title="Ingatkan lagi" onPress={() => setSnoozing(item)} />
+                  </View>
+                ) : null}
               </ThemedView>
             </Pressable>
           )}

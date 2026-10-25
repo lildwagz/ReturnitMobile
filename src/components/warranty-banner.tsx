@@ -12,6 +12,25 @@ const TITLE: Record<WarrantyStatus, string> = {
   unknown: 'Tanggal garansi belum diketahui',
 };
 
+// The return deadline: calm while there is time, amber in the last 3 days, plain grey once it has passed.
+export function ReturnBanner({ date }: { date: string }) {
+  const s = (useColorScheme() === 'dark' ? BannerStyleDark : BannerStyle)[
+    daysLeft(date)! < 0 ? 'unknown' : daysLeft(date)! <= 3 ? 'expiring' : 'active'
+  ];
+  const left = daysLeft(date)!;
+  const title = left < 0 ? 'Batas pengembalian sudah lewat' : left === 0 ? 'Batas pengembalian hari ini' : 'Batas pengembalian';
+  const detail =
+    formatDate(date) + (left > 0 ? ' · ' + left + ' hari lagi' : left < 0 ? ' · berakhir ' + -left + ' hari lalu' : '');
+  return (
+    <View style={{ backgroundColor: s.bg, borderColor: s.border, borderWidth: 1, borderRadius: 16, padding: 14, gap: 4 }}>
+      <ThemedText style={{ color: s.fg, fontWeight: 700 }}>{title}</ThemedText>
+      <ThemedText type="small" style={{ color: s.fg }}>
+        {detail}
+      </ThemedText>
+    </View>
+  );
+}
+
 export function WarrantyBanner({ status, endDate }: { status: WarrantyStatus; endDate?: string | null }) {
   const s = (useColorScheme() === 'dark' ? BannerStyleDark : BannerStyle)[status];
   const left = daysLeft(endDate);

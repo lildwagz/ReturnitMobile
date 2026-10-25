@@ -15,7 +15,8 @@ import { CONNECTION_ERROR, errorMessage, initialDuration } from '@/lib/purchase'
 import { formatDate, formatIDR, warrantyStatus } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { StatusBadge } from '@/components/status-badge';
-import { WarrantyBanner } from '@/components/warranty-banner';
+import { ReturnBanner, WarrantyBanner } from '@/components/warranty-banner';
+import { addDateToCalendar } from '@/lib/calendar';
 
 function Line({ label, value }: { label: string; value: string }) {
   return (
@@ -117,6 +118,12 @@ export default function PurchaseDetail() {
     );
   }
 
+  async function addToCalendar(title: string, date: string, notes: string) {
+    const r = await addDateToCalendar({ title, date, notes });
+    if (r === 'saved') showToast('Ditambahkan ke kalender.');
+    else if (r === 'error') showToast('Tidak dapat membuka kalender di perangkat ini.');
+  }
+
   const status = warrantyStatus(p.warrantyEndDate);
   const months = initialDuration(p);
   const duration =
@@ -136,13 +143,35 @@ export default function PurchaseDetail() {
         </View>
 
         <WarrantyBanner status={status} endDate={p.warrantyEndDate} />
+        {p.returnDeadline ? <ReturnBanner date={p.returnDeadline} /> : null}
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 }}>
           <Cell label="Tanggal pembelian" value={formatDate(p.purchaseDate)} />
           <Cell label="Durasi garansi" value={duration} />
           <Cell label="Harga" value={formatIDR(p.price, p.currency)} />
           <Cell label="Tanggal akhir garansi" value={formatDate(p.warrantyEndDate)} />
+          {p.returnDeadline ? <Cell label="Batas pengembalian" value={formatDate(p.returnDeadline)} /> : null}
         </View>
+        {p.warrantyEndDate || p.returnDeadline ? (
+          <View style={{ gap: 8 }}>
+            {p.warrantyEndDate ? (
+              <AppButton
+                small
+                variant="secondary"
+                title="Tambahkan akhir garansi ke kalender"
+                onPress={() => addToCalendar('Garansi ' + p.productName + ' berakhir', p.warrantyEndDate!, 'Dicatat di ReturnIt.')}
+              />
+            ) : null}
+            {p.returnDeadline ? (
+              <AppButton
+                small
+                variant="secondary"
+                title="Tambahkan batas pengembalian ke kalender"
+                onPress={() => addToCalendar('Batas pengembalian ' + p.productName, p.returnDeadline!, 'Dicatat di ReturnIt.')}
+              />
+            ) : null}
+          </View>
+        ) : null}
         {p.notes ? <Line label="Catatan" value={p.notes} /> : null}
 
         <ReceiptSection purchaseId={p.id} receipt={p.receipt} onChanged={invalidatePurchases} />

@@ -4,8 +4,9 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, View, useColorScheme
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Brand } from '@/constants/theme';
-import { DURATIONS, Purchase, initialDuration, isValidDate } from '@/lib/purchase';
-import { addMonths, todayLocal } from '@/lib/warranty';
+import { useTheme } from '@/hooks/use-theme';
+import { DURATIONS, Purchase, RETURN_CHOICES, initialDuration, initialReturnDays, isValidDate } from '@/lib/purchase';
+import { addDays, addMonths, formatDate, todayLocal } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { AppTextInput } from '@/components/app-text-input';
 import { DateField } from '@/components/date-field';
@@ -24,6 +25,27 @@ type Props = {
 
 type Duration = number | null | 'keep';
 
+// One choice of a row of choices (duration, return period).
+function ChoiceChip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={{
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 16,
+        backgroundColor: selected ? Brand.primary : theme.backgroundElement,
+      }}>
+      <ThemedText type="small" style={{ color: selected ? 'white' : theme.text }}>
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 export function PurchaseForm({ initial, submitLabel, withReceipt, onCancel, onSubmit }: Props) {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
@@ -36,6 +58,7 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, onCancel, onSu
   );
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [duration, setDuration] = useState<Duration>(initial ? initialDuration(initial) : 12); // new purchases start at 12 months, as in the prototype
+  const [returnDays, setReturnDays] = useState<Duration>(initialReturnDays(initial)); // none unless the person sets it
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -91,6 +114,8 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, onCancel, onSu
       if (initial.warrantyStartDate) body.warrantyStartDate = initial.warrantyStartDate;
       body.warrantyEndDate = initial.warrantyEndDate;
     }
+    if (typeof returnDays === 'number') body.returnDeadline = addDays(date, returnDays);
+    else if (returnDays === 'keep' && initial?.returnDeadline) body.returnDeadline = initial.returnDeadline;
 
     setBusy(true);
     const message = await onSubmit(body, receipt?.uri);
@@ -98,29 +123,18 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, onCancel, onSu
     if (message) setFormError(message);
   }
 
-  function Chip({ label, value }: { label: string; value: Duration }) {
-    const selected = duration === value;
-    return (
-      <Pressable
-        onPress={() => setDuration(value)}
-        style={{
-          paddingHorizontal: 14,
-          paddingVertical: 8,
-          borderRadius: 16,
-          backgroundColor: selected ? Brand.primary : colors.backgroundElement,
-        }}>
-        <ThemedText type="small" style={{ color: selected ? 'white' : colors.text }}>
-          {label}
-        </ThemedText>
-      </Pressable>
-    );
-  }
-
   const endPreview =
     typeof duration === 'number' && isValidDate(date)
       ? addMonths(date, duration)
       : duration === 'keep'
         ? initial?.warrantyEndDate
+        : null;
+
+  const returnPreview =
+    typeof returnDays === 'number' && isValidDate(date)
+      ? addDays(date, returnDays)
+      : returnDays === 'keep'
+        ? initial?.returnDeadline
         : null;
 
   return (
@@ -144,12 +158,28 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, onCancel, onSu
         <ThemedText type="small">Durasi garansi</ThemedText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {DURATIONS.map((m) => (
-            <Chip key={m} label={m + ' bulan'} value={m} />
+            <ChoiceChip key={m} label={m + ' bulan'} selected={duration === m} onPress={() => setDuration(m)} />
           ))}
-          {initial && initialDuration(initial) === 'keep' && <Chip label="Tetap" value="keep" />}
-          <Chip label="Tidak diketahui" value={null} />
+          {initial && initialDuration(initial) === 'keep' && (
+            <ChoiceChip label="Tetap" selected={duration === 'keep'} onPress={() => setDuration('keep')} />
+          )}
+          <ChoiceChip label="Tidak diketahui" selected={duration === null} onPress={() => setDuration(null)} />
         </View>
-        {endPreview ? <ThemedText type="small">Garansi berakhir: {endPreview}</ThemedText> : null}
+        {endPreview ? <ThemedText type="small">Garansi berakhir: {formatDate(endPreview)}</ThemedText> : null}
+
+        <ThemedText type="small">Batas pengembalian (opsional)</ThemedText>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <ChoiceChip label="Tidak ada" selected={returnDays === null} onPress={() => setReturnDays(null)} />
+          {RETURN_CHOICES.map((d) => (
+            <ChoiceChip key={d} label={d + ' hari'} selected={returnDays === d} onPress={() => setReturnDays(d)} />
+          ))}
+          {initial && initialReturnDays(initial) === 'keep' && (
+            <ChoiceChip label="Tetap" selected={returnDays === 'keep'} onPress={() => setReturnDays('keep')} />
+          )}
+        </View>
+        {returnPreview ? (
+          <ThemedText type="small">Batas pengembalian: {formatDate(returnPreview)}. Anda akan diingatkan 3 dan 1 hari sebelumnya.</ThemedText>
+        ) : null}
 
         <ThemedText type="small">Harga (opsional)</ThemedText>
         <AppTextInput style={input} value={price} onChangeText={setPrice} placeholder="Contoh: 1500000" keyboardType="numeric" />
