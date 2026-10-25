@@ -8,6 +8,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
 import { logout } from '@/lib/auth';
+import { exportPurchasesCsv } from '@/lib/export';
+import { showToast } from '@/lib/toast';
 import { useAccount } from '@/lib/use-account';
 import { useSignedIn } from '@/lib/use-signed-in';
 
@@ -35,6 +37,14 @@ export default function SettingsScreen() {
   const signedIn = useSignedIn();
   const { account } = useAccount(signedIn);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  async function exportData() {
+    setExporting(true);
+    const problem = await exportPurchasesCsv();
+    setExporting(false);
+    if (problem) showToast(problem);
+  }
 
   return (
     <ThemedView style={{ flex: 1 }}>
@@ -63,6 +73,11 @@ export default function SettingsScreen() {
                   title="Preferensi pengingat"
                   help="Pengingat 30, 14, 7, 3, dan 1 hari sebelum akhir garansi."
                   right={<AppButton variant="secondary" title="Atur →" onPress={() => router.push('/reminders' as never)} />}
+                />
+                <SettingRow
+                  title="Ekspor data"
+                  help="Unduh daftar pembelian sebagai file CSV."
+                  right={<AppButton small variant="secondary" title={exporting ? 'Menyiapkan…' : 'Ekspor CSV'} onPress={exportData} disabled={exporting} />}
                 />
                 <SettingRow
                   title="Privasi & keamanan"

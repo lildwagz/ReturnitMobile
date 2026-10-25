@@ -1,56 +1,62 @@
-# Welcome to your Expo app 👋
+# ReturnIt (mobile app)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Warranty and receipt organizer. Expo (SDK 58) + React Native + Expo Router. The backend is a separate repo
+(`lildwagz/Returnit`: Go API, login server, notifications); the API contract, screen-to-API map and design notes are in
+its `Docs/mobile/` folder (start with `README.md` there, then `04-design/implementation-todo.md`).
 
-## Get started
+## Run it
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+The app uses native modules (document picker, camera, notifications, date picker, sharing), so **Expo Go does not
+work**: install a development build once, then start the dev server.
 
 ```bash
-npm run reset-project
+npm install
+npx eas-cli@latest login                      # an Expo account that owns this project
+npx eas-cli@latest build --profile development --platform android
+npx expo start --dev-client
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+A new development build is only needed after adding a library with native code.
 
-### Other setup steps
+## Which backend it talks to
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+`src/lib/auth.ts` picks the servers:
 
-## Learn more
+| Build | Backend |
+|---|---|
+| release build (`preview`, `production`) | the deployed server |
+| development build | `localhost` (API 8080, login 8180) |
+| development build with `EXPO_PUBLIC_USE_PROD=true npx expo start --dev-client` | the deployed server |
 
-To learn more about developing your project with Expo, look at the following resources:
+On a real phone `localhost` is the phone itself, so use the deployed server when testing on a device.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Release build (APK)
 
-## Join the community
+```bash
+npx eas-cli@latest build --profile production --platform android
+```
 
-Join our community of developers creating universal apps.
+`google-services.json` (Firebase client config, needed for push notifications) is not in the repo. It is stored as the
+EAS file variable `GOOGLE_SERVICES_JSON` of the `production` environment (`app.config.js` reads it); for a local
+build put the file in the project root.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Checks before a commit
+
+```bash
+npx tsc --noEmit    # a few errors in *.web.tsx files and global.css are known and not related to the Android/iOS app
+npx expo lint
+```
+
+## Where things are
+
+| What | Where |
+|---|---|
+| Screens (Expo Router) | `src/app/` (`(tabs)` after login, `login.tsx`, `purchase/`, `account.tsx`) |
+| Login, tokens, API calls | `src/lib/auth.ts` |
+| Warranty rules, dates, money | `src/lib/warranty.ts` |
+| Receipt picking and upload | `src/lib/receipt.ts` |
+| CSV export | `src/lib/export.ts` |
+| Colors, fonts, design tokens | `src/constants/theme.ts` (see `04-design/theme-tokens.md` in the backend repo) |
+| Shared components | `src/components/` |
+
+Navigation is guarded: the tab bar and purchase screens exist only while signed in (`src/app/_layout.tsx`).
