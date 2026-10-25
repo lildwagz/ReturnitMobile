@@ -98,7 +98,9 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 }
 
 // Returns null on success, or a message to show the user.
-export async function login(fresh = false, register = false): Promise<string | null> {
+// `provider: 'google'` skips the Keycloak login page and goes straight to Google (kc_idp_hint). A person who has
+// no account yet is registered automatically from the Google account, so there is no separate "register with Google".
+export async function login(fresh = false, register = false, provider?: 'google'): Promise<string | null> {
   try {
     const discovery = await AuthSession.fetchDiscoveryAsync(ISSUER);
     const request = new AuthSession.AuthRequest({
@@ -107,13 +109,19 @@ export async function login(fresh = false, register = false): Promise<string | n
       redirectUri: REDIRECT,
       usePKCE: true,
       prompt: fresh ? AuthSession.Prompt.Login : undefined,
-      extraParams: fresh ? { max_age: '0' } : undefined,
+      extraParams: { ...(fresh ? { max_age: '0' } : {}), ...(provider ? { kc_idp_hint: provider } : {}) },
     });
     const entry = register
       ? { ...discovery, authorizationEndpoint: ISSUER + '/protocol/openid-connect/registrations' }
       : discovery;
     const result = await request.promptAsync(entry);
-    if (result.type !== 'success') return 'Login result: ' + result.type;
+    // Closing the browser is not an error; anything else tells the user what the login server said.
+    if (result.type === 'cancel' || result.type === 'dismiss') return null;
+    if (result.type === 'error') {
+      const why = result.params?.error_description || result.params?.error || result.error?.message;
+      return 'Masuk gagal' + (why ? ': ' + why : '. Coba lagi, atau hubungi dukungan bila berulang.');
+    }
+    if (result.type !== 'success') return 'Masuk gagal (' + result.type + ').';
     const tokens = await AuthSession.exchangeCodeAsync(
       {
         clientId: CLIENT_ID,

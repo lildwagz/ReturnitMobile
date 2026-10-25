@@ -19,6 +19,11 @@ export function LoginGate() {
         <AppButton title="Masuk" onPress={async () => setError(await login())} />
         <AppButton
           variant="secondary"
+          title="Lanjutkan dengan Google"
+          onPress={async () => setError(await login(false, false, 'google'))}
+        />
+        <AppButton
+          variant="secondary"
           title="Daftar akun baru"
           onPress={async () => setError(await login(false, true))}
         />
