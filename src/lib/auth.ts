@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 
 import { queryClient } from '@/lib/query-client';
+import { clearReceiptCache } from '@/lib/receipt-cache';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -66,6 +67,7 @@ async function refreshTokens(): Promise<string | null> {
     } catch {
       await clearTokens();
       queryClient.clear(); // the session is over: nothing of this user may stay in memory
+      clearReceiptCache();
       notify();
       return null;
     } finally {
@@ -183,5 +185,6 @@ export async function logout() {
   }
   await clearTokens();
   queryClient.clear();
+  clearReceiptCache();
   notify();
 }

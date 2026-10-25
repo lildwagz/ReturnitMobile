@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { apiFetch } from '@/lib/auth';
 import { usePurchase } from '@/lib/queries';
+import { forgetReceipt } from '@/lib/receipt-cache';
 import { invalidatePurchases, keys, queryClient } from '@/lib/query-client';
 import { showToast } from '@/lib/toast';
 import { CONNECTION_ERROR, errorMessage, initialDuration } from '@/lib/purchase';
@@ -76,6 +77,7 @@ export default function PurchaseDetail() {
           try {
             const res = await apiFetch('/purchases/' + id, { method: 'DELETE' });
             if (res.status === 204) {
+              forgetReceipt(String(id));
               queryClient.removeQueries({ queryKey: keys.purchase(String(id)) });
               invalidatePurchases();
               showToast('Pembelian dihapus.');

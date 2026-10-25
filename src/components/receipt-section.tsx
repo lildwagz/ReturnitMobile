@@ -9,6 +9,7 @@ import { apiFetch } from '@/lib/auth';
 import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
 import { AppButton } from '@/components/app-button';
 import { captureReceipt, formatSize, pickReceipt, uploadReceipt } from '@/lib/receipt';
+import { cachedReceipt, downloadReceipt, forgetReceipt, receiptExt, receiptKey } from '@/lib/receipt-cache';
 
 type Props = {
   purchaseId: string;
@@ -20,7 +21,10 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
   const theme = useTheme();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // The receipt as a local file. It comes from the cache when this receipt was viewed before, so it shows at once.
+  const key = receipt ? receiptKey(purchaseId, receipt) : null;
+  const ext = receipt ? receiptExt(receipt.contentType) : '';
+  const [previewUri, setPreviewUri] = useState<string | null>(() => (key ? cachedReceipt(key, ext) : null));
   const [previewFailed, setPreviewFailed] = useState(false);
   const [cameraBlocked, setCameraBlocked] = useState(false);
   const [pdfPage, setPdfPage] = useState(1);
@@ -45,16 +49,35 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
   }, [purchaseId]);
 
   const loadPreview = useCallback(async () => {
+    if (!key) return;
     setMessage(null);
     setPreviewFailed(false);
-    setPreviewUrl(await fetchLink());
-  }, [fetchLink]);
+    const cached = cachedReceipt(key, ext);
+    if (cached) {
+      setPreviewUri(cached);
+      return;
+    }
+    const url = await fetchLink();
+    if (!url) return;
+    try {
+      setPreviewUri(await downloadReceipt(url, key, ext));
+    } catch {
+      setPreviewFailed(true);
+    }
+  }, [key, ext, fetchLink]);
 
-  // Images appear automatically when the screen opens or the receipt changes.
+  // The preview appears when the screen opens or the receipt changes.
   useEffect(() => {
-    setPreviewUrl(null);
+    setPreviewUri(key ? cachedReceipt(key, ext) : null);
     if (isImage || isPdf) loadPreview();
-  }, [receipt, isImage, isPdf, loadPreview]);
+  }, [key, ext, isImage, isPdf, loadPreview]);
+
+  // A cached file that cannot be shown is dropped, so "Coba lagi" downloads it afresh.
+  function previewBroken() {
+    forgetReceipt(purchaseId);
+    setPreviewUri(null);
+    setPreviewFailed(true);
+  }
 
   async function openPdf() {
     setBusy(true);
@@ -75,8 +98,10 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
     setBusy(true);
     const error = await uploadReceipt(purchaseId, uri);
     setBusy(false);
-    if (!error) onChanged();
-    else setMessage(error === CONNECTION_ERROR ? error + ' Catatan tetap tersimpan, coba unggah lagi.' : error);
+    if (!error) {
+      forgetReceipt(purchaseId);
+      onChanged();
+    } else setMessage(error === CONNECTION_ERROR ? error + ' Catatan tetap tersimpan, coba unggah lagi.' : error);
   }
 
   async function choose(pick: typeof pickReceipt) {
@@ -101,8 +126,10 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
           setBusy(true);
           try {
             const res = await apiFetch('/purchases/' + purchaseId + '/receipt', { method: 'DELETE' });
-            if (res.status === 204) onChanged();
-            else setMessage(await errorMessage(res));
+            if (res.status === 204) {
+              forgetReceipt(purchaseId);
+              onChanged();
+            } else setMessage(await errorMessage(res));
           } catch {
             setMessage(CONNECTION_ERROR);
           } finally {
@@ -133,31 +160,31 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
       </View>
       {receipt ? (
         <>
-          {isImage && previewUrl && !previewFailed && (
+          {isImage && previewUri && !previewFailed && (
             <Image
-              source={{ uri: previewUrl }}
+              source={{ uri: previewUri }}
               style={{ width: '100%', height: 320, borderRadius: 12 }}
               resizeMode="contain"
-              onError={() => setPreviewFailed(true)}
+              onError={previewBroken}
             />
           )}
-          {isImage && !previewUrl && !message && <ActivityIndicator />}
+          {isImage && !previewUri && !message && <ActivityIndicator />}
           {isImage && previewFailed && (
             <View style={{ gap: 8 }}>
               <ThemedText themeColor="errorText">Pratinjau gagal dimuat.</ThemedText>
               <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />
             </View>
           )}
-          {isImage && message && !previewUrl && <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />}
+          {isImage && message && !previewUri && <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />}
 
-          {isPdf && previewUrl && !previewFailed && (
+          {isPdf && previewUri && !previewFailed && (
             <View style={{ gap: 6 }}>
               <PdfViewer
-                uri={previewUrl}
+                uri={previewUri}
                 style={{ width: '100%', height: 420, backgroundColor: '#8882' }}
                 onLoadComplete={(pages) => setPdfPages(pages)}
                 onPageChanged={(page) => setPdfPage(page)}
-                onError={() => setPreviewFailed(true)}
+                onError={previewBroken}
               />
               {pdfPages > 0 && (
                 <ThemedText type="small" style={{ textAlign: 'center' }}>
@@ -166,7 +193,7 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
               )}
             </View>
           )}
-          {isPdf && !previewUrl && !message && <ActivityIndicator />}
+          {isPdf && !previewUri && !message && <ActivityIndicator />}
           {isPdf && previewFailed && (
             <View style={{ gap: 8 }}>
               <ThemedText themeColor="errorText">Pratinjau PDF gagal dimuat.</ThemedText>
@@ -174,7 +201,7 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
               <AppButton variant="secondary" title="Unduh PDF (cadangan)" onPress={openPdf} disabled={busy} />
             </View>
           )}
-          {isPdf && message && !previewUrl && <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />}
+          {isPdf && message && !previewUri && <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />}
           <AppButton variant="secondary" title="Ganti struk" onPress={pickAndUpload} disabled={busy} />
           <AppButton variant="secondary" title="Ambil foto baru" onPress={takePhoto} disabled={busy} />
           <AppButton title="Hapus struk" variant="danger" onPress={confirmRemove} disabled={busy} />
