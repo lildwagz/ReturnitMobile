@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, View } from 'react-native';
-import Pdf from 'react-native-pdf';
 
+import { PdfViewer } from '@/components/pdf-viewer';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
@@ -152,11 +152,8 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
 
           {isPdf && previewUrl && !previewFailed && (
             <View style={{ gap: 6 }}>
-              <Pdf
-                source={{ uri: previewUrl, cache: false }}
-                horizontal
-                enablePaging
-                trustAllCerts={false}
+              <PdfViewer
+                uri={previewUrl}
                 style={{ width: '100%', height: 420, backgroundColor: '#8882' }}
                 onLoadComplete={(pages) => setPdfPages(pages)}
                 onPageChanged={(page) => setPdfPage(page)}
