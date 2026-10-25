@@ -3,10 +3,15 @@ import { useColorScheme } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 import { t } from '@/i18n';
+import { useNotifications } from '@/lib/queries';
+import { useSignedIn } from '@/lib/use-signed-in';
 
 export default function AppTabs() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
+  // The number of unread reminders on the Pengingat tab (the list is capped at 50).
+  const signedIn = useSignedIn() === true;
+  const unread = (useNotifications<unknown>(true, signedIn).data ?? []).length;
 
   return (
     <NativeTabs
@@ -27,6 +32,7 @@ export default function AppTabs() {
       <NativeTabs.Trigger name="reminders">
         <NativeTabs.Trigger.Label>{t('tab.reminders')}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'bell', selected: 'bell.fill' }} md="notifications" />
+        <NativeTabs.Trigger.Badge hidden={unread === 0}>{unread >= 50 ? '50+' : String(unread)}</NativeTabs.Trigger.Badge>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="explore">

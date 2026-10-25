@@ -19,7 +19,6 @@ export const keys = {
   purchaseList: (status: string, q: string) => ['purchases', 'list', status, q] as const,
   purchaseCount: (status: string) => ['purchases', 'count', status] as const,
   recent: ['purchases', 'recent'] as const,
-  attention: ['purchases', 'attention'] as const,
   purchase: (id: string) => ['purchase', id] as const,
   account: ['account'] as const,
   prefs: ['reminder-prefs'] as const,

@@ -1,17 +1,17 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, Switch, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/empty-state';
-import { PurchaseRow } from '@/components/purchase-row';
+import { PushOffNotice, Chip, type Prefs } from '@/components/reminder-prefs';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Brand } from '@/constants/theme';
 import { t } from '@/i18n';
 import { apiFetch } from '@/lib/auth';
 import { connectionError, errorMessage } from '@/lib/purchase';
-import { useAttention, useNotifications, useRefetchStaleOnFocus } from '@/lib/queries';
+import { useNotifications, useReminderPrefs, useRefetchStaleOnFocus } from '@/lib/queries';
 import { keys, queryClient } from '@/lib/query-client';
 import { useSignedIn } from '@/lib/use-signed-in';
 import { AppButton } from '@/components/app-button';
@@ -38,20 +38,18 @@ export default function RemindersScreen() {
   const [unreadOnly, setUnreadOnly] = useState(false);
   const notesQuery = useNotifications<Note>(unreadOnly, signedIn);
   const notes = notesQuery.data ?? [];
-  // Purchases whose warranty ends within 30 days or has ended (what the prototype lists under "perlu diperhatikan").
-  const attentionQuery = useAttention(signedIn);
-  const attention = attentionQuery.data ?? [];
+  const prefs = useReminderPrefs<Prefs>(signedIn).data ?? null;
   const notesError = notesQuery.error ? notesQuery.error.message : null;
-  const loading = notesQuery.isFetching || attentionQuery.isFetching;
+  const loading = notesQuery.isFetching;
   const handledOpen = useRef<string | null>(null);
 
   async function loadAll() {
-    await Promise.all([notesQuery.refetch(), attentionQuery.refetch()]);
+    await notesQuery.refetch();
   }
 
   // Coming into view: refresh whatever is older than its staleTime.
   useRefetchStaleOnFocus(['notifications']);
-  useRefetchStaleOnFocus(keys.purchases);
+  useRefetchStaleOnFocus(keys.prefs);
 
   // Opens the reminder that was tapped in a push notification.
   useEffect(() => {
@@ -103,6 +101,7 @@ export default function RemindersScreen() {
           queryClient.setQueriesData<Note[]>({ queryKey: ['notifications'] }, (old) =>
             old?.map((x) => (x.id === n.id ? { ...x, read: true } : x)),
           );
+          queryClient.invalidateQueries({ queryKey: ['notifications'] }); // the unread count on the tab
         }
       } catch {
         // Marking as read is best effort; opening the purchase still works.
@@ -114,38 +113,27 @@ export default function RemindersScreen() {
   const header = (
     <View style={{ gap: 10, paddingBottom: 12 }}>
       <View style={{ gap: 4 }}>
-        <ThemedText type="title">{t('rem.title')}</ThemedText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <ThemedText type="title">{t('rem.title')}</ThemedText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('rem.settings')}
+            hitSlop={12}
+            onPress={() => router.push('/reminder-settings' as never)}>
+            <ThemedText style={{ fontSize: 24, lineHeight: 30 }}>⚙️</ThemedText>
+          </Pressable>
+        </View>
         <ThemedText themeColor="textSecondary">{t('rem.subtitle')}</ThemedText>
       </View>
-      <View style={{ alignSelf: 'flex-start' }}>
-        <AppButton small variant="secondary" title={t('rem.settings')} onPress={() => router.push('/reminder-settings' as never)} />
-      </View>
 
-      <ThemedText type="subtitle" style={{ fontSize: 18, lineHeight: 24, marginTop: 4 }}>
-        {t('rem.history')}
-      </ThemedText>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <ThemedText type="small">{t('rem.unreadOnly')}</ThemedText>
-        <Switch value={unreadOnly} onValueChange={setUnreadOnly} />
+      <PushOffNotice channel={prefs?.channel ?? 'push'} enabled={prefs?.enabled ?? true} />
+
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Chip label={t('rem.filterAll')} selected={!unreadOnly} onPress={() => setUnreadOnly(false)} />
+        <Chip label={t('rem.filterUnread')} selected={unreadOnly} onPress={() => setUnreadOnly(true)} />
       </View>
       {notesError && <ThemedText themeColor="errorText">{notesError}</ThemedText>}
       {notesError && <AppButton variant="secondary" title={t('rem.retry')} onPress={loadAll} />}
-    </View>
-  );
-
-  // Under the history: purchases whose warranty ends soon or has ended.
-  const footer = (
-    <View style={{ gap: 10, paddingTop: 20 }}>
-      <ThemedText type="subtitle" style={{ fontSize: 18, lineHeight: 24 }}>
-        {t('rem.attentionTitle')}
-      </ThemedText>
-      {attention.length === 0 ? (
-        <EmptyState title={t('rem.attentionEmpty')} help={t('rem.attentionEmptyHelp')} />
-      ) : (
-        attention.map((p) => (
-          <PurchaseRow key={p.id} p={p} onPress={() => router.push(('/purchase/' + p.id) as never)} />
-        ))
-      )}
     </View>
   );
 
@@ -157,13 +145,17 @@ export default function RemindersScreen() {
           data={notes}
           keyExtractor={(n) => n.id}
           ListHeaderComponent={header}
-          ListFooterComponent={footer}
           refreshing={loading}
           onRefresh={loadAll}
           keyboardShouldPersistTaps="handled"
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           ListEmptyComponent={
-            loading ? null : (
+            loading ? null : prefs && !prefs.enabled ? (
+              <View style={{ gap: 12 }}>
+                <EmptyState title={t('rem.emptyOff')} help={t('rem.emptyOffHelp')} />
+                <AppButton title={t('rem.turnOn')} onPress={() => router.push('/reminder-settings' as never)} />
+              </View>
+            ) : (
               <EmptyState
                 title={unreadOnly ? t('rem.emptyUnread') : t('rem.empty')}
                 help={t('rem.emptyHelp')}

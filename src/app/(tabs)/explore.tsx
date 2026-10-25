@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/app-button';
 import { LanguageSheet } from '@/components/language-sheet';
+import { prefsStatus, type Prefs } from '@/components/reminder-prefs';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
@@ -12,6 +13,7 @@ import { LANGUAGES, t, useLanguage } from '@/i18n';
 import { setAppLockEnabled, useAppLock } from '@/lib/app-lock';
 import { logout } from '@/lib/auth';
 import { exportPurchasesCsv } from '@/lib/export';
+import { useReminderPrefs } from '@/lib/queries';
 import { showToast } from '@/lib/toast';
 import { useAccount } from '@/lib/use-account';
 import { useSignedIn } from '@/lib/use-signed-in';
@@ -39,6 +41,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const signedIn = useSignedIn();
   const { account } = useAccount(signedIn);
+  const reminderPrefs = useReminderPrefs<Prefs>(signedIn === true).data;
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [exporting, setExporting] = useState(false);
   const lock = useAppLock();
@@ -86,7 +89,7 @@ export default function SettingsScreen() {
                 />
                 <SettingRow
                   title={t('set.reminders')}
-                  help={t('set.remindersHelp')}
+                  help={reminderPrefs ? prefsStatus(reminderPrefs) : t('set.remindersHelp')}
                   right={<AppButton variant="secondary" title={t('set.manage')} onPress={() => router.push('/reminder-settings' as never)} />}
                 />
                 <SettingRow

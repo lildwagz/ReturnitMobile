@@ -83,25 +83,6 @@ export function usePurchase(id: string | undefined, enabled: boolean) {
 
 // ---- Pengingat ----
 
-// Purchases whose warranty ends within 30 days or has ended. Best effort: a failure just gives an empty list.
-export function useAttention(enabled: boolean) {
-  return useQuery({
-    queryKey: keys.attention,
-    enabled,
-    queryFn: async () => {
-      const items: Purchase[] = [];
-      for (const status of ['expiring', 'expired']) {
-        try {
-          items.push(...(await apiJson<PurchasePage>(`/purchases?warrantyStatus=${status}&pageSize=10`)).items);
-        } catch {
-          // the rest of the screen works without this list
-        }
-      }
-      return items;
-    },
-  });
-}
-
 export function useReminderPrefs<T>(enabled: boolean) {
   return useQuery({ queryKey: keys.prefs, enabled, queryFn: () => apiJson<T>('/reminder-preferences') });
 }

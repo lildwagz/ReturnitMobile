@@ -14,7 +14,7 @@ import { PushPermission, getPushPermission, registerForPush } from '@/lib/push';
 import { useRefetchStaleOnFocus, useReminderPrefs } from '@/lib/queries';
 import { keys, queryClient } from '@/lib/query-client';
 
-type Prefs = {
+export type Prefs = {
   enabled: boolean;
   daysBefore: number[];
   channel: 'push' | 'email' | 'in_app';
@@ -41,7 +41,52 @@ function summarize(p: Prefs): string {
 }
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+
+// The state in a few words, for the row in Settings: "Aktif · 7, 1 hari sebelumnya · Notifikasi HP".
+export function prefsStatus(p: Prefs): string {
+  if (!p.enabled || p.daysBefore.length === 0) return t('rem.status.off');
+  return t('rem.status.on', {
+    days: [...p.daysBefore].sort((a, b) => b - a).join(t('rem.listSep')),
+    channel: t(('rem.channel.' + p.channel) as Key),
+  });
+}
+
+// The notification permission of the phone, re-read every time the screen comes into view (it may have been changed
+// in the system settings).
+export function usePushPermission() {
+  const [perm, setPerm] = useState<{ status: PushPermission; canAskAgain: boolean } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      getPushPermission().then(setPerm).catch(() => {});
+    }, []),
+  );
+  return [perm, setPerm] as const;
+}
+
+// Shown only when reminders are meant to arrive as phone notifications but the phone does not allow them: it explains
+// why nothing arrives.
+export function PushOffNotice({ channel, enabled = true }: { channel: Prefs['channel']; enabled?: boolean }) {
+  const [perm, setPerm] = usePushPermission();
+  if (!enabled || channel !== 'push' || !perm || perm.status === 'granted') return null;
+  return (
+    <ThemedView type="backgroundElement" style={{ padding: 12, borderRadius: 12, gap: 8 }}>
+      <ThemedText>{t('rem.pushOff')}</ThemedText>
+      {perm.canAskAgain ? (
+        <AppButton
+          title={t('rem.allowPush')}
+          onPress={async () => {
+            await registerForPush();
+            setPerm(await getPushPermission());
+          }}
+        />
+      ) : (
+        <AppButton variant="secondary" title={t('rs.openSettings')} onPress={() => Linking.openSettings()} />
+      )}
+    </ThemedView>
+  );
+}
+
+export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
@@ -84,14 +129,6 @@ export function ReminderPrefs({ signedIn }: { signedIn: boolean }) {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const prefsError = prefsQuery.error ? prefsQuery.error.message : null;
-  const [perm, setPerm] = useState<{ status: PushPermission; canAskAgain: boolean } | null>(null);
-
-  // Coming into view: re-read the notification permission (it may have changed in the system settings).
-  useFocusEffect(
-    useCallback(() => {
-      getPushPermission().then(setPerm).catch(() => {});
-    }, []),
-  );
   useRefetchStaleOnFocus(keys.prefs);
 
   function toggleDay(d: number) {
@@ -158,22 +195,7 @@ export function ReminderPrefs({ signedIn }: { signedIn: boolean }) {
 
   return (
     <View style={{ gap: 10 }}>
-      {perm && perm.status !== 'granted' && (prefs?.channel ?? 'push') === 'push' && (
-        <ThemedView type="backgroundElement" style={{ padding: 12, borderRadius: 12, gap: 8 }}>
-          <ThemedText>{t('rem.pushOff')}</ThemedText>
-          {perm.canAskAgain ? (
-            <AppButton
-              title={t('rem.allowPush')}
-              onPress={async () => {
-                await registerForPush();
-                setPerm(await getPushPermission());
-              }}
-            />
-          ) : (
-            <AppButton variant="secondary" title={t('rs.openSettings')} onPress={() => Linking.openSettings()} />
-          )}
-        </ThemedView>
-      )}
+      <PushOffNotice channel={prefs?.channel ?? 'push'} enabled={prefs?.enabled ?? true} />
 
       {prefsError && (
         <>
