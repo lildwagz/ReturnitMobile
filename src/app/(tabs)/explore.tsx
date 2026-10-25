@@ -87,7 +87,7 @@ export default function SettingsScreen() {
                 <SettingRow
                   title={t('set.reminders')}
                   help={t('set.remindersHelp')}
-                  right={<AppButton variant="secondary" title={t('set.manage')} onPress={() => router.push('/reminders' as never)} />}
+                  right={<AppButton variant="secondary" title={t('set.manage')} onPress={() => router.push('/reminder-settings' as never)} />}
                 />
                 <SettingRow
                   title={t('set.language')}

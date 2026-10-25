@@ -107,6 +107,7 @@ export const reminders = {
     en: 'Items that need attention will appear here.',
     ar: 'ستظهر هنا المنتجات التي تحتاج إلى انتباه.',
   },
+  'rem.settings': { id: 'Pengaturan pengingat', en: 'Reminder settings', ar: 'إعدادات التذكير' },
   'rem.history': { id: 'Riwayat pengingat', en: 'Reminder history', ar: 'سجل التذكيرات' },
   'rem.unreadOnly': { id: 'Hanya yang belum dibaca', en: 'Unread only', ar: 'غير المقروءة فقط' },
   'rem.retry': { id: 'Coba lagi', en: 'Try again', ar: 'حاول مرة أخرى' },

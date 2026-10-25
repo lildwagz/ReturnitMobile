@@ -107,6 +107,7 @@ export default function RootLayout() {
         <Stack.Protected guard={signedIn === true}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="purchase" />
+          <Stack.Screen name="reminder-settings" options={{ headerShown: true, title: t('set.reminders') }} />
           <Stack.Screen name="account" options={{ headerShown: true, title: t('set.account') }} />
         </Stack.Protected>
       </Stack>
