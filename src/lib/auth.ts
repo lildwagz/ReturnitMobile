@@ -2,6 +2,8 @@ import * as AuthSession from 'expo-auth-session';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 
+import { queryClient } from '@/lib/query-client';
+
 WebBrowser.maybeCompleteAuthSession();
 
 // Release builds (preview/production) talk to the deployed server; a dev build uses localhost
@@ -63,6 +65,7 @@ async function refreshTokens(): Promise<string | null> {
       return t.accessToken;
     } catch {
       await clearTokens();
+      queryClient.clear(); // the session is over: nothing of this user may stay in memory
       notify();
       return null;
     } finally {
@@ -159,5 +162,6 @@ export async function logout() {
     // Revoking is best effort; we still forget the tokens below.
   }
   await clearTokens();
+  queryClient.clear();
   notify();
 }

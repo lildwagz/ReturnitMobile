@@ -5,6 +5,7 @@ import { PurchaseForm } from '@/components/purchase-form';
 import { apiFetch } from '@/lib/auth';
 import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
 import { uploadReceipt } from '@/lib/receipt';
+import { invalidatePurchases } from '@/lib/query-client';
 import { showToast } from '@/lib/toast';
 
 export default function NewPurchase() {
@@ -30,11 +31,13 @@ export default function NewPurchase() {
         }
         const error = id ? await uploadReceipt(id, receiptUri) : null;
         if (error && id) {
+          invalidatePurchases();
           Alert.alert('Pembelian tersimpan', 'Struk belum terunggah: ' + error + '\nCoba lagi dari halaman ini.');
           router.replace(('/purchase/' + id) as never);
           return null;
         }
       }
+      invalidatePurchases();
       showToast('Pembelian berhasil disimpan.');
       router.back();
       return null;

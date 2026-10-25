@@ -1,14 +1,16 @@
 import { ReceiptSection } from '@/components/receipt-section';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
 
 import { PurchaseForm } from '@/components/purchase-form';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { apiFetch } from '@/lib/auth';
+import { usePurchase } from '@/lib/queries';
+import { invalidatePurchases, keys, queryClient } from '@/lib/query-client';
 import { showToast } from '@/lib/toast';
-import { CONNECTION_ERROR, Purchase, errorMessage, initialDuration } from '@/lib/purchase';
+import { CONNECTION_ERROR, errorMessage, initialDuration } from '@/lib/purchase';
 import { formatDate, formatIDR, warrantyStatus } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { StatusBadge } from '@/components/status-badge';
@@ -37,28 +39,12 @@ function Cell({ label, value }: { label: string; value: string }) {
 export default function PurchaseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [p, setP] = useState<Purchase | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiFetch('/purchases/' + id);
-      if (res.ok) setP(await res.json());
-      else setError(await errorMessage(res));
-    } catch {
-      setError(CONNECTION_ERROR);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const query = usePurchase(id, true);
+  const p = query.data ?? null;
+  const loading = query.isLoading;
+  const error = query.error ? query.error.message : null;
+  const load = () => query.refetch();
 
   async function saveEdit(body: Record<string, unknown>) {
     try {
@@ -68,7 +54,8 @@ export default function PurchaseDetail() {
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        setP(await res.json());
+        queryClient.setQueryData(keys.purchase(String(id)), await res.json());
+        invalidatePurchases();
         setEditing(false);
         showToast('Pembelian berhasil diperbarui.');
         return null;
@@ -89,10 +76,11 @@ export default function PurchaseDetail() {
           try {
             const res = await apiFetch('/purchases/' + id, { method: 'DELETE' });
             if (res.status === 204) {
+              queryClient.removeQueries({ queryKey: keys.purchase(String(id)) });
+              invalidatePurchases();
               showToast('Pembelian dihapus.');
               router.back();
-            }
-            else Alert.alert('Gagal menghapus', await errorMessage(res));
+            } else Alert.alert('Gagal menghapus', await errorMessage(res));
           } catch {
             Alert.alert('Gagal menghapus', CONNECTION_ERROR);
           }
@@ -155,7 +143,7 @@ export default function PurchaseDetail() {
         </View>
         {p.notes ? <Line label="Catatan" value={p.notes} /> : null}
 
-        <ReceiptSection purchaseId={p.id} receipt={p.receipt} onChanged={load} />
+        <ReceiptSection purchaseId={p.id} receipt={p.receipt} onChanged={invalidatePurchases} />
 
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <View style={{ flex: 1 }}>

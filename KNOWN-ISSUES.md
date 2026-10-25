@@ -7,8 +7,8 @@
   `global.css`. They do not affect the Android and iOS builds.
 - **Lint errors** about calling `setState` inside effects and a component created during render
   (`purchase-form.tsx`), plus `push.ts` (`AndroidImportance`). They are old and the screens work.
-- **No cache.** Every screen loads its data again each time it appears, and nothing works without a connection.
-  A plan is in the backend repo's notes (query cache, cleared on sign-out).
+- **No offline mode.** Data is cached in memory only (30 seconds fresh, refreshed in the background, cleared on
+  sign-out), so nothing is shown without a connection after the app was closed. Receipt images are not cached.
 - **"Next reminder" is not shown.** The API only returns reminders that were already sent.
 
 ## Fixed

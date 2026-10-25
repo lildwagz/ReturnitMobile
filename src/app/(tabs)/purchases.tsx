@@ -1,27 +1,18 @@
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  ScrollView,
-  View,
-  useColorScheme,
-} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { FlatList, Pressable, ScrollView, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppButton } from '@/components/app-button';
+import { AppTextInput } from '@/components/app-text-input';
 import { EmptyState } from '@/components/empty-state';
 import { PurchaseRow } from '@/components/purchase-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Brand, Colors } from '@/constants/theme';
-import { apiFetch, login } from '@/lib/auth';
-import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
+import { usePurchaseList, useRefetchStaleOnFocus } from '@/lib/queries';
+import { keys } from '@/lib/query-client';
 import { useSignedIn } from '@/lib/use-signed-in';
-import { AppButton } from '@/components/app-button';
-import { AppTextInput } from '@/components/app-text-input';
-
-const PAGE_SIZE = 20;
 
 const FILTERS: { value: string; label: string }[] = [
   { value: '', label: 'Semua' },
@@ -35,18 +26,11 @@ export default function PurchasesScreen() {
   const router = useRouter();
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
-  const signedIn = useSignedIn();
-
-  const [items, setItems] = useState<Purchase[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const signedIn = useSignedIn() === true; // the tabs only exist while signed in
 
   const [searchText, setSearchText] = useState('');
   const [query, setQuery] = useState(''); // search text after a short pause in typing
   const [filter, setFilter] = useState('');
-  const latest = useRef(0); // ignores answers to outdated requests
 
   // Wait 400 ms after the last keystroke before searching.
   useEffect(() => {
@@ -54,86 +38,12 @@ export default function PurchasesScreen() {
     return () => clearTimeout(t);
   }, [searchText]);
 
-  const fetchPage = useCallback(
-    async (page: number) => {
-      let path = `/purchases?page=${page}&pageSize=${PAGE_SIZE}`;
-      if (query) path += '&q=' + encodeURIComponent(query);
-      if (filter) path += '&warrantyStatus=' + filter;
-      const res = await apiFetch(path);
-      if (!res.ok) throw new Error(await errorMessage(res));
-      return res.json();
-    },
-    [query, filter],
-  );
+  const list = usePurchaseList(filter, query, signedIn);
+  useRefetchStaleOnFocus(keys.purchases);
 
-  const refresh = useCallback(async () => {
-    const id = ++latest.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchPage(1);
-      if (id !== latest.current) return;
-      setItems(data.items);
-      setTotal(data.total);
-    } catch (e) {
-      if (id !== latest.current) return;
-      setItems([]);
-      setTotal(0);
-      setError(e instanceof TypeError ? CONNECTION_ERROR : e instanceof Error ? e.message : CONNECTION_ERROR);
-    } finally {
-      if (id === latest.current) setLoading(false);
-    }
-  }, [fetchPage]);
-
-  const loadMore = useCallback(async () => {
-    if (loading || items.length >= total) return;
-    const id = latest.current;
-    setLoading(true);
-    try {
-      const data = await fetchPage(Math.floor(items.length / PAGE_SIZE) + 1);
-      if (id !== latest.current) return;
-      setItems((prev) => [...prev, ...data.items]);
-      setTotal(data.total);
-    } catch {
-      setError('Gagal memuat data berikutnya.');
-    } finally {
-      setLoading(false);
-    }
-  }, [loading, items.length, total, fetchPage]);
-
-  // Runs when the tab comes into view, and again whenever the search or filter changes.
-  useFocusEffect(
-    useCallback(() => {
-      if (signedIn) refresh();
-    }, [signedIn, refresh]),
-  );
-  useEffect(() => {
-    if (signedIn === false) {
-      setItems([]);
-      setTotal(0);
-    }
-  }, [signedIn]);
-  if (signedIn === null) {
-    return (
-      <ThemedView style={{ flex: 1, justifyContent: 'center' }}>
-        <ActivityIndicator />
-      </ThemedView>
-    );
-  }
-
-  if (!signedIn) {
-    return (
-      <ThemedView style={{ flex: 1 }}>
-        <SafeAreaView style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
-          <ThemedText type="title">ReturnIt</ThemedText>
-          <ThemedText>Masuk untuk melihat catatan pembelian dan garansi Anda.</ThemedText>
-          <AppButton title="Masuk" onPress={async () => setLoginError(await login())} />
-          {loginError && <ThemedText type="small">{loginError}</ThemedText>}
-        </SafeAreaView>
-      </ThemedView>
-    );
-  }
-
+  const items = list.data?.pages.flatMap((p) => p.items) ?? [];
+  const total = list.data?.pages[0]?.total ?? 0;
+  const error = list.error ? list.error.message : list.isFetchNextPageError ? 'Gagal memuat data berikutnya.' : null;
   const filtering = !!query || !!filter;
 
   return (
@@ -149,16 +59,8 @@ export default function PurchasesScreen() {
           value={searchText}
           onChangeText={setSearchText}
           placeholder="Cari nama produk atau toko"
-         
           autoCorrect={false}
           maxLength={120}
-          style={{
-            color: colors.text,
-            backgroundColor: colors.backgroundElement,
-            borderRadius: 12,
-            padding: 12,
-            fontSize: 16,
-          }}
         />
 
         <View>
@@ -190,7 +92,7 @@ export default function PurchasesScreen() {
             <ThemedText type="small" themeColor="errorText">
               {error}
             </ThemedText>
-            <AppButton variant="secondary" title="Coba lagi" onPress={refresh} />
+            <AppButton variant="secondary" title="Coba lagi" onPress={() => list.refetch()} />
           </View>
         )}
 
@@ -201,13 +103,15 @@ export default function PurchasesScreen() {
             <PurchaseRow p={item} onPress={() => router.push(('/purchase/' + item.id) as never)} />
           )}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-          refreshing={loading}
-          onRefresh={refresh}
-          onEndReached={loadMore}
+          refreshing={list.isRefetching && !list.isFetchingNextPage}
+          onRefresh={() => list.refetch()}
+          onEndReached={() => {
+            if (list.hasNextPage && !list.isFetchingNextPage) list.fetchNextPage();
+          }}
           onEndReachedThreshold={0.5}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
-            loading ? null : filtering ? (
+            list.isLoading ? null : filtering ? (
               <EmptyState title="Tidak ada hasil" help="Coba kata kunci atau filter yang berbeda." />
             ) : (
               <EmptyState title="Belum ada pembelian" help="Tambahkan pembelian pertama Anda." />

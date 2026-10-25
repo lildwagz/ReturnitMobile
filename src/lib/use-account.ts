@@ -1,9 +1,10 @@
-import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 
 import { apiFetch, login } from '@/lib/auth';
 import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
+import { useAccountQuery, useRefetchStaleOnFocus } from '@/lib/queries';
+import { keys } from '@/lib/query-client';
 
 export type Account = {
   id: string;
@@ -23,28 +24,17 @@ async function errorCode(res: Response): Promise<string | null> {
 
 // The signed-in account (GET /account) and its deletion flow, shared by Pengaturan and the Akun screen.
 export function useAccount(signedIn: boolean | null) {
-  const [account, setAccount] = useState<Account | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const query = useAccountQuery<Account>(signedIn === true);
+  const account = query.data ?? null;
+  const loadError = query.error ? query.error.message : null;
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  useRefetchStaleOnFocus(keys.account);
 
+  // Re-reads the account right away (after the deletion state changed, or for the "Coba lagi" button).
   const loadAccount = useCallback(async () => {
-    setLoadError(null);
-    try {
-      const res = await apiFetch('/account');
-      if (res.ok) setAccount(await res.json());
-      else setLoadError(await errorMessage(res));
-    } catch {
-      setLoadError(CONNECTION_ERROR);
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (signedIn) loadAccount();
-      else setAccount(null);
-    }, [signedIn, loadAccount]),
-  );
+    await query.refetch();
+  }, [query]);
 
   async function requestDeletion() {
     setBusy(true);

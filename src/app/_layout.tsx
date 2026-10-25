@@ -4,12 +4,14 @@ import {
   PlusJakartaSans_700Bold,
   useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { ToastHost } from '@/components/toast-host';
+import { queryClient } from '@/lib/query-client';
 import { useSignedIn } from '@/lib/use-signed-in';
 
 SplashScreen.preventAutoHideAsync();
@@ -26,6 +28,7 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
+    <QueryClientProvider client={queryClient}>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
       {/* The tab bar and the purchase screens only exist after login; before it only the login screen does.
@@ -45,5 +48,6 @@ export default function RootLayout() {
       </Stack>
       <ToastHost />
     </ThemeProvider>
+    </QueryClientProvider>
   );
 }

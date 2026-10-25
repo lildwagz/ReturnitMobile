@@ -17,7 +17,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Brand } from '@/constants/theme';
 import { apiFetch } from '@/lib/auth';
-import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
+import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
+import { useAttention, useNotifications, useReminderPrefs, useRefetchStaleOnFocus } from '@/lib/queries';
+import { keys, queryClient } from '@/lib/query-client';
 import { PushPermission, getPushPermission, registerForPush } from '@/lib/push';
 import { useSignedIn } from '@/lib/use-signed-in';
 import { AppButton } from '@/components/app-button';
@@ -112,61 +114,40 @@ export default function RemindersScreen() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
   const { open } = useLocalSearchParams<{ open?: string }>();
-  const signedIn = useSignedIn();
+  const signedIn = useSignedIn() === true; // the tabs only exist while signed in
 
-  const [prefs, setPrefs] = useState<Prefs | null>(null);
-  const [prefsError, setPrefsError] = useState<string | null>(null);
+  const prefsQuery = useReminderPrefs<Prefs>(signedIn);
+  const [draft, setPrefs] = useState<Prefs | null>(null); // unsaved edits; the saved settings come from the cache
+  const prefs = draft ?? prefsQuery.data ?? null;
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
-  const [notes, setNotes] = useState<Note[]>([]);
-  // Purchases whose warranty ends within 30 days or has ended (what the prototype lists under "perlu diperhatikan").
-  const [attention, setAttention] = useState<Purchase[]>([]);
-  const [notesError, setNotesError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const notesQuery = useNotifications<Note>(unreadOnly, signedIn);
+  const notes = notesQuery.data ?? [];
+  // Purchases whose warranty ends within 30 days or has ended (what the prototype lists under "perlu diperhatikan").
+  const attentionQuery = useAttention(signedIn);
+  const attention = attentionQuery.data ?? [];
+  const prefsError = prefsQuery.error ? prefsQuery.error.message : null;
+  const notesError = notesQuery.error ? notesQuery.error.message : null;
+  const loading = prefsQuery.isFetching || notesQuery.isFetching || attentionQuery.isFetching;
   const [perm, setPerm] = useState<{ status: PushPermission; canAskAgain: boolean } | null>(null);
   const handledOpen = useRef<string | null>(null);
 
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    setPrefsError(null);
-    setNotesError(null);
+  async function loadAll() {
     getPushPermission().then(setPerm).catch(() => {});
-    try {
-      const res = await apiFetch('/reminder-preferences');
-      if (res.ok) setPrefs(await res.json());
-      else setPrefsError(await errorMessage(res));
-    } catch {
-      setPrefsError(CONNECTION_ERROR);
-    }
-    try {
-      const res = await apiFetch('/notifications?limit=50' + (unreadOnly ? '&unreadOnly=true' : ''));
-      if (res.ok) setNotes(await res.json());
-      else setNotesError(await errorMessage(res));
-    } catch {
-      setNotesError(CONNECTION_ERROR);
-    }
-    // Best effort: without this list the rest of the screen still works.
-    try {
-      const [soon, expired] = await Promise.all([
-        apiFetch('/purchases?warrantyStatus=expiring&pageSize=10'),
-        apiFetch('/purchases?warrantyStatus=expired&pageSize=10'),
-      ]);
-      const items: Purchase[] = [];
-      for (const r of [soon, expired]) if (r.ok) items.push(...(await r.json()).items);
-      setAttention(items);
-    } catch {
-      setAttention([]);
-    }
-    setLoading(false);
-  }, [unreadOnly]);
+    await Promise.all([prefsQuery.refetch(), notesQuery.refetch(), attentionQuery.refetch()]);
+  }
 
-  // Runs when the tab comes into view, and again when the unread-only switch changes.
+  // Coming into view: re-read the notification permission (it may have changed in the system settings) and
+  // refresh whatever is older than its staleTime.
   useFocusEffect(
     useCallback(() => {
-      if (signedIn) loadAll();
-    }, [signedIn, loadAll]),
+      getPushPermission().then(setPerm).catch(() => {});
+    }, []),
   );
+  useRefetchStaleOnFocus(keys.prefs);
+  useRefetchStaleOnFocus(['notifications']);
+  useRefetchStaleOnFocus(keys.purchases);
 
   // Opens the reminder that was tapped in a push notification.
   useEffect(() => {
@@ -217,7 +198,8 @@ export default function RemindersScreen() {
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        setPrefs(await res.json());
+        queryClient.setQueryData(keys.prefs, await res.json());
+        setPrefs(null);
         setSaveMsg('Pengaturan tersimpan.');
       } else {
         setSaveMsg(await errorMessage(res));
@@ -233,30 +215,16 @@ export default function RemindersScreen() {
     if (!n.read) {
       try {
         const res = await apiFetch('/notifications/' + n.id + '/read', { method: 'POST' });
-        if (res.status === 204) setNotes((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+        if (res.status === 204) {
+          queryClient.setQueriesData<Note[]>({ queryKey: ['notifications'] }, (old) =>
+            old?.map((x) => (x.id === n.id ? { ...x, read: true } : x)),
+          );
+        }
       } catch {
         // Marking as read is best effort; opening the purchase still works.
       }
     }
     if (n.purchaseId) router.push(('/purchase/' + n.purchaseId) as never);
-  }
-
-  if (signedIn === null) {
-    return (
-      <ThemedView style={{ flex: 1, justifyContent: 'center' }}>
-        <ActivityIndicator />
-      </ThemedView>
-    );
-  }
-
-  if (!signedIn) {
-    return (
-      <ThemedView style={{ flex: 1 }}>
-        <SafeAreaView style={{ flex: 1, padding: 24, justifyContent: 'center' }}>
-          <ThemedText>Masuk lewat tab Home untuk melihat pengingat.</ThemedText>
-        </SafeAreaView>
-      </ThemedView>
-    );
   }
 
   const timeInput = {

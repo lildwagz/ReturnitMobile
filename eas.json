@@ -13,6 +13,12 @@
       "distribution": "internal",
       "environment": "preview"
     },
+    "preview-arm64": {
+      "distribution": "internal",
+      "environment": "production",
+      "android": { "buildType": "apk" },
+      "env": { "RETURNIT_ABIS": "arm64-v8a" }
+    },
     "production": {
       "android": { "buildType": "apk" },
       "autoIncrement": true,

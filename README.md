@@ -30,7 +30,17 @@ A new development build is only needed after adding a library with native code.
 
 On a real phone `localhost` is the phone itself, so use the deployed server when testing on a device.
 
-## Release build (APK)
+## Builds
+
+| Profile | Result |
+|---|---|
+|  | development build (dev client) |
+|  | small APK for current phones only (arm64): faster to build and about a third of the size |
+|  | APK with every CPU architecture (about 100 MB), for emulators and old phones |
+
+
+
+### Release build (APK)
 
 ```bash
 npx eas-cli@latest build --profile production --platform android
