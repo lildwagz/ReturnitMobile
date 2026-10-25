@@ -68,6 +68,17 @@ npx eas-cli@latest build --profile preview-arm64 --platform android
 `GOOGLE_SERVICES_JSON` of the `production` environment, which `app.config.js` reads; the `preview-arm64` profile uses that
 environment too. For a local build put the file in the project root.
 
+## Force update and maintenance
+
+The server can lock an outdated build, invite users to update, or announce maintenance; the app only obeys.
+`src/lib/app-config.ts` asks `GET /app-config` when the app opens and when it returns to the foreground, `src/lib/auth.ts` sends
+`X-App-Version` with every API call (the `version` in `app.json`: **raise it for every build you hand out**), and a `426` or `503` answer shows the
+same lock screen (`src/components/update-gate.tsx`). If the server cannot be reached the app carries on.
+
+To see it on a phone: install a build, then ask whoever runs the server to raise the minimum above that build
+(`./publish-apk.sh min <version>`, see the backend repo's `deploy/README.md`, section 7.1), then reopen the app or pull to refresh.
+The server tries to be safe: it never accepts a minimum above the newest published build.
+
 ## Before you commit
 
 ```bash
