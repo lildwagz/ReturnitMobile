@@ -58,12 +58,14 @@ export const isRtl = (l: Language = state.language) => l === 'ar';
 
 // Writing direction is decided by the operating system when the app starts: switching between a left-to-right and a
 // right-to-left language only takes effect after the app has been closed and opened again.
+// I18nManager.isRTL keeps the direction the app started with, so it must not be used to skip forceRTL: the saved
+// direction has to follow every choice, or going back to English would stay right-to-left after the restart.
+// Returns true when the saved direction differs from the one the app is running with now.
 function syncDirection(language: Language): boolean {
-  I18nManager.allowRTL(true);
   const wantRtl = isRtl(language);
-  if (I18nManager.isRTL === wantRtl) return false;
+  I18nManager.allowRTL(true);
   I18nManager.forceRTL(wantRtl);
-  return true;
+  return I18nManager.isRTL !== wantRtl;
 }
 
 // Reads the saved choice (call once at start).
@@ -89,7 +91,7 @@ export async function setLanguageChoice(choice: LanguageChoice): Promise<boolean
     // the choice still applies until the app is closed
   }
   const restartNeeded = syncDirection(language);
-  set({ choice, language, restartNeeded: state.restartNeeded || restartNeeded });
+  set({ choice, language, restartNeeded });
   return restartNeeded;
 }
 
