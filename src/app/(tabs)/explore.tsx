@@ -1,12 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/app-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
+import { setAppLockEnabled, useAppLock } from '@/lib/app-lock';
 import { logout } from '@/lib/auth';
 import { exportPurchasesCsv } from '@/lib/export';
 import { showToast } from '@/lib/toast';
@@ -38,6 +39,15 @@ export default function SettingsScreen() {
   const { account } = useAccount(signedIn);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const lock = useAppLock();
+  const [lockBusy, setLockBusy] = useState(false);
+
+  async function toggleLock(on: boolean) {
+    setLockBusy(true);
+    const problem = await setAppLockEnabled(on);
+    setLockBusy(false);
+    if (problem) showToast(problem);
+  }
 
   async function exportData() {
     setExporting(true);
@@ -73,6 +83,11 @@ export default function SettingsScreen() {
                   title="Preferensi pengingat"
                   help="Pengingat 30, 14, 7, 3, dan 1 hari sebelum akhir garansi."
                   right={<AppButton variant="secondary" title="Atur →" onPress={() => router.push('/reminders' as never)} />}
+                />
+                <SettingRow
+                  title="Kunci aplikasi"
+                  help="Minta sidik jari, wajah, atau PIN HP saat aplikasi dibuka, dan setelah ditinggalkan lebih dari 30 detik."
+                  right={<Switch value={lock.enabled} onValueChange={toggleLock} disabled={lockBusy} accessibilityLabel="Kunci aplikasi" />}
                 />
                 <SettingRow
                   title="Ekspor data"

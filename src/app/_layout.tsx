@@ -8,13 +8,15 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { AppState, useColorScheme } from 'react-native';
+import { AppState, View, useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { LockScreen } from '@/components/lock-screen';
 import { ToastHost } from '@/components/toast-host';
 import { UpdateGate } from '@/components/update-gate';
 import { useAppGate } from '@/lib/app-gate';
 import { checkAppConfig } from '@/lib/app-config';
+import { loadAppLock, lockAfterAbsence, useAppLock } from '@/lib/app-lock';
 import { queryClient } from '@/lib/query-client';
 import { useSignedIn } from '@/lib/use-signed-in';
 
@@ -24,6 +26,23 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const signedIn = useSignedIn();
   const gate = useAppGate();
+  const lock = useAppLock();
+
+  // App lock: read the saved setting once, and lock again when the app was away for longer than the grace time.
+  useEffect(() => {
+    loadAppLock();
+    let leftAt: number | null = null;
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'background') leftAt = Date.now();
+      else if (s === 'active') {
+        lockAfterAbsence(leftAt);
+        leftAt = null;
+      }
+    });
+    return () => sub.remove();
+  }, []);
+  // Locked: the screens stay where they are but nothing can be touched or read until the person is recognised.
+  const locked = signedIn === true && (!lock.ready || (lock.enabled && lock.locked));
 
   // Ask the server whether this version may still be used: when the app opens and every time it comes back.
   useEffect(() => {
@@ -57,6 +76,11 @@ export default function RootLayout() {
       <AnimatedSplashOverlay />
       {/* The tab bar and the purchase screens only exist after login; before it only the login screen does.
           Logging out flips the guard and the router returns to the login screen by itself. */}
+      <View
+        style={{ flex: 1 }}
+        pointerEvents={locked ? 'none' : 'auto'}
+        accessibilityElementsHidden={locked}
+        importantForAccessibility={locked ? 'no-hide-descendants' : 'auto'}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={signedIn === null}>
           <Stack.Screen name="loading" />
@@ -70,6 +94,8 @@ export default function RootLayout() {
           <Stack.Screen name="account" options={{ headerShown: true, title: 'Akun' }} />
         </Stack.Protected>
       </Stack>
+      </View>
+      {locked && <LockScreen />}
       <ToastHost />
     </ThemeProvider>
     </QueryClientProvider>

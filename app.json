@@ -40,6 +40,7 @@
         }
       ],
       "expo-secure-store",
+      ["expo-local-authentication", { "faceIDPermission": "ReturnIt memakai Face ID untuk membuka kunci aplikasi." }],
       "expo-web-browser"
     ],
     "experiments": {
