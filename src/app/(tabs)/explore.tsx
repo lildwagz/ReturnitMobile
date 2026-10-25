@@ -1,30 +1,15 @@
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppButton } from '@/components/app-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { apiFetch, login, logout } from '@/lib/auth';
-import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
-import { useSignedIn } from '@/lib/use-signed-in';
-import { AppButton } from '@/components/app-button';
 import { useTheme } from '@/hooks/use-theme';
-
-type Account = {
-  id: string;
-  email: string;
-  displayName?: string | null;
-  deletionScheduledFor?: string | null;
-};
-
-async function errorCode(res: Response): Promise<string | null> {
-  try {
-    return (await res.clone().json())?.error?.code ?? null;
-  } catch {
-    return null;
-  }
-}
+import { logout } from '@/lib/auth';
+import { useAccount } from '@/lib/use-account';
+import { useSignedIn } from '@/lib/use-signed-in';
 
 // One line of the settings card: title, one line of help, and a control on the right.
 function SettingRow({ title, help, right, onPress, last }: { title: string; help: string; right: React.ReactNode; onPress?: () => void; last?: boolean }) {
@@ -48,123 +33,32 @@ function SettingRow({ title, help, right, onPress, last }: { title: string; help
 export default function SettingsScreen() {
   const router = useRouter();
   const signedIn = useSignedIn();
-  const [account, setAccount] = useState<Account | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [showPrivacy, setShowPrivacy] = useState(false);  
-
-  const loadAccount = useCallback(async () => {
-    setLoadError(null);
-    try {
-      const res = await apiFetch('/account');
-      if (res.ok) setAccount(await res.json());
-      else setLoadError(await errorMessage(res));
-    } catch {
-      setLoadError(CONNECTION_ERROR);
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (signedIn) loadAccount();
-      else setAccount(null);
-    }, [signedIn, loadAccount]),
-  );
-
-  async function requestDeletion() {
-    setBusy(true);
-    setMessage(null);
-    try {
-      let res = await apiFetch('/account', { method: 'DELETE' });
-      if (res.status === 401 && (await errorCode(res)) === 'reauthentication_required') {
-        setMessage('Untuk keamanan, masuk sekali lagi untuk melanjutkan.');
-        const problem = await login(true);
-        if (problem) {
-          setMessage('Masuk ulang tidak selesai, jadi penghapusan dibatalkan.');
-          return;
-        }
-        res = await apiFetch('/account', { method: 'DELETE' });
-      }
-      if (res.status === 202) {
-        setMessage(null);
-        await loadAccount();
-      } else if (res.status === 401) {
-        setMessage('Login belum cukup baru. Coba lagi.');
-      } else {
-        setMessage(await errorMessage(res));
-      }
-    } catch {
-      setMessage(CONNECTION_ERROR);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function confirmDeletion() {
-    Alert.alert(
-      'Hapus akun?',
-      'Akun dijadwalkan terhapus permanen setelah masa tunggu (biasanya 7 hari). Selama masa tunggu Anda dapat membatalkan. Setelah itu, semua pembelian, struk, dan pengingat hilang dan tidak dapat dipulihkan.',
-      [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus akun', style: 'destructive', onPress: requestDeletion },
-      ],
-    );
-  }
-
-  async function cancelDeletion() {
-    setBusy(true);
-    setMessage(null);
-    try {
-      const res = await apiFetch('/account/deletion/cancel', { method: 'POST' });
-      if (res.status === 204) await loadAccount();
-      else if (res.status === 409) setMessage('Masa tunggu sudah berakhir, akun tidak dapat dipulihkan lagi.');
-      else setMessage(await errorMessage(res));
-    } catch {
-      setMessage(CONNECTION_ERROR);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { account } = useAccount(signedIn);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   return (
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 24, gap: 16, paddingBottom: 120 }}>
-          <ThemedText type="title">Pengaturan</ThemedText>
+          <View style={{ gap: 4 }}>
+            <ThemedText type="title">Pengaturan</ThemedText>
+            <ThemedText themeColor="textSecondary">Preferensi dan pengelolaan data.</ThemedText>
+          </View>
           {!signedIn ? (
             <ThemedText>Anda belum masuk. Buka tab Home untuk masuk.</ThemedText>
           ) : (
             <>
-              {loadError && (
-                <View style={{ gap: 8 }}>
-                  <ThemedText themeColor="errorText">{loadError}</ThemedText>
-                  <AppButton variant="secondary" title="Coba lagi" onPress={loadAccount} />
-                </View>
-              )}
-              {!account && !loadError && <ActivityIndicator />}
-              {account && (
-                <ThemedText>
-                  {(account.displayName ? account.displayName + '\n' : '') + account.email}
-                </ThemedText>
-              )}
-
-              {account?.deletionScheduledFor ? (
-                <ThemedView type="backgroundElement" style={{ padding: 14, borderRadius: 14, gap: 10 }}>
-                  <ThemedText style={{ fontWeight: '700' }}>Penghapusan akun dijadwalkan</ThemedText>
-                  <ThemedText>
-                    {'Akun dan semua datanya akan dihapus permanen pada ' +
-                      new Date(account.deletionScheduledFor).toLocaleString() +
-                      '. Anda masih bisa membatalkan sebelum waktu itu.'}
-                  </ThemedText>
-                  {busy ? <ActivityIndicator /> : <AppButton variant="secondary" title="Batalkan penghapusan" onPress={cancelDeletion} />}
-                </ThemedView>
-              ) : (
-                account && (busy ? <ActivityIndicator /> : <AppButton title="Hapus akun" variant="danger" onPress={confirmDeletion} />)
-              )}
-
-              {message && <ThemedText>{message}</ThemedText>}
-                            <ThemedView type="backgroundElement" style={{ borderRadius: 16, paddingHorizontal: 14 }}>
+              <ThemedView type="backgroundElement" style={{ borderRadius: 16, paddingHorizontal: 14 }}>
+                <SettingRow
+                  title="Akun"
+                  help={
+                    account?.deletionScheduledFor
+                      ? 'Penghapusan akun dijadwalkan. Ketuk untuk membatalkan.'
+                      : (account?.email ?? 'Profil, ekspor data, dan hapus akun.')
+                  }
+                  right={<ThemedText themeColor="textSecondary" style={{ fontSize: 24 }}>›</ThemedText>}
+                  onPress={() => router.push('/account' as never)}
+                />
                 <SettingRow
                   title="Preferensi pengingat"
                   help="Pengingat 30, 14, 7, 3, dan 1 hari sebelum akhir garansi."

@@ -40,6 +40,7 @@ export default function RootLayout() {
         <Stack.Protected guard={signedIn === true}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="purchase" />
+          <Stack.Screen name="account" options={{ headerShown: true, title: 'Akun' }} />
         </Stack.Protected>
       </Stack>
       <ToastHost />

@@ -12,11 +12,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/empty-state';
+import { PurchaseRow } from '@/components/purchase-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Brand } from '@/constants/theme';
 import { apiFetch } from '@/lib/auth';
-import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
+import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
 import { PushPermission, getPushPermission, registerForPush } from '@/lib/push';
 import { useSignedIn } from '@/lib/use-signed-in';
 import { AppButton } from '@/components/app-button';
@@ -65,6 +66,29 @@ function Chip({ label, selected, onPress }: { label: string; selected: boolean; 
   );
 }
 
+const DAY_HELP: Record<number, string> = {
+  30: 'Pengingat awal untuk memeriksa syarat garansi.',
+  14: 'Pengingat lanjutan.',
+  7: 'Pengingat lanjutan sebelum masa garansi berakhir.',
+  3: 'Pengingat mendekati akhir garansi.',
+  1: 'Pengingat terakhir sehari sebelum garansi berakhir.',
+};
+
+// A setting with a title, one line of help and a switch, as in the prototype.
+function PrefRow({ title, help, value, onChange }: { title: string; help: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <ThemedText style={{ fontWeight: 700 }}>{title}</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {help}
+        </ThemedText>
+      </View>
+      <Switch value={value} onValueChange={onChange} accessibilityLabel={title} />
+    </View>
+  );
+}
+
 export default function RemindersScreen() {
   const router = useRouter();
   const scheme = useColorScheme();
@@ -77,6 +101,8 @@ export default function RemindersScreen() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
+  // Purchases whose warranty ends within 30 days or has ended (what the prototype lists under "perlu diperhatikan").
+  const [attention, setAttention] = useState<Purchase[]>([]);
   const [notesError, setNotesError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -101,6 +127,18 @@ export default function RemindersScreen() {
       else setNotesError(await errorMessage(res));
     } catch {
       setNotesError(CONNECTION_ERROR);
+    }
+    // Best effort: without this list the rest of the screen still works.
+    try {
+      const [soon, expired] = await Promise.all([
+        apiFetch('/purchases?warrantyStatus=expiring&pageSize=10'),
+        apiFetch('/purchases?warrantyStatus=expired&pageSize=10'),
+      ]);
+      const items: Purchase[] = [];
+      for (const r of [soon, expired]) if (r.ok) items.push(...(await r.json()).items);
+      setAttention(items);
+    } catch {
+      setAttention([]);
     }
     setLoading(false);
   }, [unreadOnly]);
@@ -215,7 +253,10 @@ export default function RemindersScreen() {
 
   const header = (
     <View style={{ gap: 10, paddingBottom: 12 }}>
-      <ThemedText type="title">Pengingat</ThemedText>
+      <View style={{ gap: 4 }}>
+        <ThemedText type="title">Pengingat Garansi</ThemedText>
+        <ThemedText themeColor="textSecondary">Atur kapan ReturnIt mengingatkan Anda.</ThemedText>
+      </View>
 
       {perm && perm.status !== 'granted' && (
         <ThemedView type="backgroundElement" style={{ padding: 12, borderRadius: 12, gap: 8 }}>
@@ -240,22 +281,24 @@ export default function RemindersScreen() {
       {prefsError && <ThemedText themeColor="errorText">{prefsError}</ThemedText>}
       {prefs && (
         <>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <ThemedText>Aktifkan pengingat garansi</ThemedText>
-            <Switch
-              value={prefs.enabled}
-              onValueChange={(v) => {
-                setSaveMsg(null);
-                setPrefs({ ...prefs, enabled: v });
-              }}
+          <PrefRow
+            title="Pengingat garansi"
+            help="Aktifkan pengingat untuk item dengan tanggal akhir yang diketahui. Dikirim pukul 09:00."
+            value={prefs.enabled}
+            onChange={(v) => {
+              setSaveMsg(null);
+              setPrefs({ ...prefs, enabled: v });
+            }}
+          />
+          {DAYS.map((d) => (
+            <PrefRow
+              key={d}
+              title={d + ' hari sebelumnya'}
+              help={DAY_HELP[d]}
+              value={prefs.daysBefore.includes(d)}
+              onChange={() => toggleDay(d)}
             />
-          </View>
-          <ThemedText type="small">Ingatkan berapa hari sebelum garansi berakhir (pukul 09:00)</ThemedText>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {DAYS.map((d) => (
-              <Chip key={d} label={d + ' hari'} selected={prefs.daysBefore.includes(d)} onPress={() => toggleDay(d)} />
-            ))}
-          </View>
+          ))}
 
           <ThemedText type="small">Saluran pengingat</ThemedText>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -325,8 +368,22 @@ export default function RemindersScreen() {
         </>
       )}
 
-      <ThemedText type="title" style={{ fontSize: 22, lineHeight: 28, marginTop: 12 }}>
+      <ThemedText type="subtitle" style={{ fontSize: 18, lineHeight: 24, marginTop: 12 }}>
         Garansi yang perlu diperhatikan
+      </ThemedText>
+      {attention.length === 0 ? (
+        <EmptyState
+          title="Belum ada garansi mendekati akhir"
+          help="Item yang perlu diperhatikan akan tampil di sini."
+        />
+      ) : (
+        attention.map((p) => (
+          <PurchaseRow key={p.id} p={p} onPress={() => router.push(('/purchase/' + p.id) as never)} />
+        ))
+      )}
+
+      <ThemedText type="subtitle" style={{ fontSize: 18, lineHeight: 24, marginTop: 12 }}>
+        Riwayat pengingat
       </ThemedText>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <ThemedText type="small">Hanya yang belum dibaca</ThemedText>
