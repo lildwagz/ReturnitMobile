@@ -10,14 +10,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { StatusBadge } from '@/components/status-badge';
+import { EmptyState } from '@/components/empty-state';
+import { PurchaseRow } from '@/components/purchase-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Brand, Colors } from '@/constants/theme';
 import { apiFetch, login } from '@/lib/auth';
 import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
 import { useSignedIn } from '@/lib/use-signed-in';
-import { daysLeft, formatDate, formatIDR, warrantyStatus } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { AppTextInput } from '@/components/app-text-input';
 
@@ -30,28 +30,6 @@ const FILTERS: { value: string; label: string }[] = [
   { value: 'expired', label: 'Kedaluwarsa' },
   { value: 'none', label: 'Tidak Diketahui' },
 ];
-
-function Row({ p, onPress }: { p: Purchase; onPress: () => void }) {
-  const status = warrantyStatus(p.warrantyEndDate);
-  const left = daysLeft(p.warrantyEndDate);
-  return (
-    <Pressable onPress={onPress}>
-      <ThemedView type="backgroundElement" style={{ padding: 16, borderRadius: 16, gap: 6 }}>
-        <ThemedText type="title" style={{ fontSize: 20, lineHeight: 26 }}>
-          {p.productName}
-        </ThemedText>
-        <ThemedText type="small">{(p.storeName ? p.storeName + ' · ' : '') + formatDate(p.purchaseDate)}</ThemedText>
-        <ThemedText type="small">{formatIDR(p.price, p.currency)}</ThemedText>
-        <StatusBadge status={status} />
-        {left !== null && (
-          <ThemedText type="small">
-            {left >= 0 ? left + ' hari lagi' : 'Berakhir ' + -left + ' hari lalu'}
-          </ThemedText>
-        )}
-      </ThemedView>
-    </Pressable>
-  );
-}
 
 export default function PurchasesScreen() {
   const router = useRouter();
@@ -220,7 +198,7 @@ export default function PurchasesScreen() {
           data={items}
           keyExtractor={(p) => p.id}
           renderItem={({ item }) => (
-            <Row p={item} onPress={() => router.push(('/purchase/' + item.id) as never)} />
+            <PurchaseRow p={item} onPress={() => router.push(('/purchase/' + item.id) as never)} />
           )}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           refreshing={loading}
@@ -230,9 +208,9 @@ export default function PurchasesScreen() {
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             loading ? null : filtering ? (
-              <ThemedText>Tidak ada hasil. Coba kata kunci atau filter lain.</ThemedText>
+              <EmptyState title="Tidak ada hasil" help="Coba kata kunci atau filter yang berbeda." />
             ) : (
-              <ThemedText>Belum ada pembelian. Tambahkan pembelian pertama Anda dengan tombol di atas.</ThemedText>
+              <EmptyState title="Belum ada pembelian" help="Tambahkan pembelian pertama Anda." />
             )
           }
           contentContainerStyle={{ paddingBottom: 120 }}

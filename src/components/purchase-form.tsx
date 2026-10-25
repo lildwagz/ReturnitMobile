@@ -8,6 +8,7 @@ import { DURATIONS, Purchase, initialDuration, isValidDate } from '@/lib/purchas
 import { addMonths, todayLocal } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { AppTextInput } from '@/components/app-text-input';
+import { DateField } from '@/components/date-field';
 import { captureReceipt, pickReceipt } from '@/lib/receipt';
 
 type Props = {
@@ -15,13 +16,15 @@ type Props = {
   submitLabel: string;
   // Shows the optional receipt picker (the "add" screen). The file is uploaded by the caller after the purchase exists.
   withReceipt?: boolean;
+  // Called by the "Batal" button.
+  onCancel?: () => void;
   // Returns an error message to show, or null when saved.
   onSubmit: (body: Record<string, unknown>, receiptUri?: string) => Promise<string | null>;
 };
 
 type Duration = number | null | 'keep';
 
-export function PurchaseForm({ initial, submitLabel, withReceipt, onSubmit }: Props) {
+export function PurchaseForm({ initial, submitLabel, withReceipt, onCancel, onSubmit }: Props) {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
@@ -32,7 +35,7 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, onSubmit }: Pr
     initial?.price !== null && initial?.price !== undefined ? String(initial.price) : '',
   );
   const [notes, setNotes] = useState(initial?.notes ?? '');
-  const [duration, setDuration] = useState<Duration>(initialDuration(initial));
+  const [duration, setDuration] = useState<Duration>(initial ? initialDuration(initial) : 12); // new purchases start at 12 months, as in the prototype
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -123,16 +126,19 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, onSubmit }: Pr
   return (
     <ThemedView style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
+        {!initial && (
+          <ThemedText themeColor="textSecondary">Isi informasi dasar. Struk dapat ditambahkan sekarang atau nanti.</ThemedText>
+        )}
         <ThemedText type="small">Nama produk *</ThemedText>
-        <AppTextInput style={input} value={name} onChangeText={setName} placeholder="Contoh: Laptop" />
+        <AppTextInput style={input} value={name} onChangeText={setName} placeholder="Contoh: Headphone Sony" />
         {errors.name && <ThemedText type="small" themeColor="errorText">{errors.name}</ThemedText>}
 
-        <ThemedText type="small">Toko</ThemedText>
-        <AppTextInput style={input} value={store} onChangeText={setStore} placeholder="Opsional" />
+        <ThemedText type="small">Toko / Store</ThemedText>
+        <AppTextInput style={input} value={store} onChangeText={setStore} placeholder="Contoh: Toko Elektronik" />
         {errors.store && <ThemedText type="small" themeColor="errorText">{errors.store}</ThemedText>}
 
-        <ThemedText type="small">Tanggal pembelian * (TTTT-BB-HH)</ThemedText>
-        <AppTextInput style={input} value={date} onChangeText={setDate} placeholder="2026-10-19" autoCapitalize="none" />
+        <ThemedText type="small">Tanggal pembelian *</ThemedText>
+        <DateField value={date} onChange={setDate} />
         {errors.date && <ThemedText type="small" themeColor="errorText">{errors.date}</ThemedText>}
 
         <ThemedText type="small">Durasi garansi</ThemedText>
@@ -145,8 +151,8 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, onSubmit }: Pr
         </View>
         {endPreview ? <ThemedText type="small">Garansi berakhir: {endPreview}</ThemedText> : null}
 
-        <ThemedText type="small">Harga (Rp)</ThemedText>
-        <AppTextInput style={input} value={price} onChangeText={setPrice} placeholder="Opsional, contoh 1500000" keyboardType="numeric" />
+        <ThemedText type="small">Harga (opsional)</ThemedText>
+        <AppTextInput style={input} value={price} onChangeText={setPrice} placeholder="Contoh: 1500000" keyboardType="numeric" />
         {errors.price && <ThemedText type="small" themeColor="errorText">{errors.price}</ThemedText>}
 
         <ThemedText type="small">Catatan</ThemedText>
@@ -173,7 +179,20 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, onSubmit }: Pr
         )}
 
         {formError && <ThemedText themeColor="errorText">{formError}</ThemedText>}
-        {busy ? <ActivityIndicator /> : <AppButton title={submitLabel} onPress={save} />}
+        {busy ? (
+          <ActivityIndicator />
+        ) : (
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {onCancel && (
+              <View style={{ flex: 1 }}>
+                <AppButton variant="secondary" title="Batal" onPress={onCancel} />
+              </View>
+            )}
+            <View style={{ flex: 2 }}>
+              <AppButton title={submitLabel} onPress={save} />
+            </View>
+          </View>
+        )}
       </ScrollView>
     </ThemedView>
   );

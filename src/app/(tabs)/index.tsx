@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyState } from '@/components/empty-state';
 import { LoginGate } from '@/components/login-gate';
 import { PurchaseRow } from '@/components/purchase-row';
 import { ThemedText } from '@/components/themed-text';
@@ -133,7 +134,7 @@ export default function HomeScreen() {
             )}
           </View>
           {recent.length === 0 && !loading && !error ? (
-            <ThemedText>Belum ada pembelian. Mulai dengan menambahkan pembelian pertama Anda.</ThemedText>
+            <EmptyState title="Belum ada pembelian" help="Tambahkan pembelian pertama Anda." />
           ) : (
             recent.map((p) => (
               <PurchaseRow key={p.id} p={p} onPress={() => router.push(('/purchase/' + p.id) as never)} />

@@ -1,5 +1,5 @@
 import { ReceiptSection } from '@/components/receipt-section';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
 
@@ -7,6 +7,7 @@ import { PurchaseForm } from '@/components/purchase-form';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { apiFetch } from '@/lib/auth';
+import { showToast } from '@/lib/toast';
 import { CONNECTION_ERROR, Purchase, errorMessage, initialDuration } from '@/lib/purchase';
 import { formatDate, formatIDR, warrantyStatus } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
@@ -69,6 +70,7 @@ export default function PurchaseDetail() {
       if (res.ok) {
         setP(await res.json());
         setEditing(false);
+        showToast('Pembelian berhasil diperbarui.');
         return null;
       }
       return await errorMessage(res);
@@ -86,7 +88,10 @@ export default function PurchaseDetail() {
         onPress: async () => {
           try {
             const res = await apiFetch('/purchases/' + id, { method: 'DELETE' });
-            if (res.status === 204) router.back();
+            if (res.status === 204) {
+              showToast('Pembelian dihapus.');
+              router.back();
+            }
             else Alert.alert('Gagal menghapus', await errorMessage(res));
           } catch {
             Alert.alert('Gagal menghapus', CONNECTION_ERROR);
@@ -114,7 +119,12 @@ export default function PurchaseDetail() {
   }
 
   if (editing) {
-    return <PurchaseForm initial={p} submitLabel="Simpan perubahan" onSubmit={saveEdit} />;
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Edit Pembelian' }} />
+        <PurchaseForm initial={p} submitLabel="Simpan perubahan" onCancel={() => setEditing(false)} onSubmit={saveEdit} />
+      </>
+    );
   }
 
   const status = warrantyStatus(p.warrantyEndDate);

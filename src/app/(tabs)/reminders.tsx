@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyState } from '@/components/empty-state';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Brand } from '@/constants/theme';
@@ -349,7 +350,10 @@ export default function RemindersScreen() {
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           ListEmptyComponent={
             loading ? null : (
-              <ThemedText>{unreadOnly ? 'Tidak ada pengingat yang belum dibaca.' : 'Belum ada pengingat.'}</ThemedText>
+              <EmptyState
+                title={unreadOnly ? 'Tidak ada pengingat yang belum dibaca' : 'Belum ada pengingat'}
+                help="Pengingat garansi akan tampil di sini saat waktunya tiba."
+              />
             )
           }
           contentContainerStyle={{ paddingBottom: 120 }}

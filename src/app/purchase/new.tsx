@@ -5,6 +5,7 @@ import { PurchaseForm } from '@/components/purchase-form';
 import { apiFetch } from '@/lib/auth';
 import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
 import { uploadReceipt } from '@/lib/receipt';
+import { showToast } from '@/lib/toast';
 
 export default function NewPurchase() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function NewPurchase() {
           return null;
         }
       }
+      showToast('Pembelian berhasil disimpan.');
       router.back();
       return null;
     } catch {
@@ -41,5 +43,5 @@ export default function NewPurchase() {
     }
   }
 
-  return <PurchaseForm submitLabel="Simpan" withReceipt onSubmit={submit} />;
+  return <PurchaseForm submitLabel="Simpan Pembelian" withReceipt onCancel={() => router.back()} onSubmit={submit} />;
 }

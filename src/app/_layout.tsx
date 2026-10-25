@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { ToastHost } from '@/components/toast-host';
 import { useSignedIn } from '@/lib/use-signed-in';
 
 SplashScreen.preventAutoHideAsync();
@@ -41,6 +42,7 @@ export default function RootLayout() {
           <Stack.Screen name="purchase" />
         </Stack.Protected>
       </Stack>
+      <ToastHost />
     </ThemeProvider>
   );
 }
