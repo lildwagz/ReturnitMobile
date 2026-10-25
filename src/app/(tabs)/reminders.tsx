@@ -42,6 +42,7 @@ type Note = {
   id: string;
   purchaseId?: string | null;
   kind?: 'warranty' | 'return';
+  snoozeUntil?: SnoozeChoice[];
   title: string;
   body: string;
   createdAt: string;
@@ -413,7 +414,7 @@ export default function RemindersScreen() {
   return (
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, paddingHorizontal: 16 }}>
-        <SnoozeSheet visible={snoozing !== null} busy={snoozeBusy} onPick={snooze} onClose={() => setSnoozing(null)} />
+        <SnoozeSheet visible={snoozing !== null} choices={snoozing?.snoozeUntil ?? []} busy={snoozeBusy} onPick={snooze} onClose={() => setSnoozing(null)} />
         <FlatList
           data={notes}
           keyExtractor={(n) => n.id}
@@ -445,7 +446,7 @@ export default function RemindersScreen() {
                 <ThemedText style={{ fontWeight: item.read ? '400' : '700' }}>{item.title}</ThemedText>
                 <ThemedText type="small">{item.body}</ThemedText>
                 <ThemedText type="small">{new Date(item.createdAt).toLocaleString()}</ThemedText>
-                {item.purchaseId ? (
+                {item.purchaseId && item.snoozeUntil && item.snoozeUntil.length > 0 ? (
                   <View style={{ alignSelf: 'flex-start', marginTop: 6 }}>
                     <AppButton small variant="secondary" title={t('rem.snooze')} onPress={() => setSnoozing(item)} />
                   </View>
