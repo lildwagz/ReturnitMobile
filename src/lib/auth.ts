@@ -122,6 +122,15 @@ export async function login(fresh = false, register = false, provider?: 'google'
     if (result.type === 'cancel' || result.type === 'dismiss') return null;
     if (result.type === 'error') {
       const why = result.params?.error_description || result.params?.error || result.error?.message;
+      if (provider === 'google') {
+        // An e-mail that already has an account made another way cannot be linked silently (a safety rule of the
+        // login server), so tell the person what to do instead of showing a bare error.
+        return (
+          'Tidak dapat masuk dengan Google' +
+          (why ? ' (' + why + ')' : '') +
+          '. Jika e-mail ini sudah punya akun dengan kata sandi, masuk dengan e-mail dan kata sandi, atau pilih Lupa kata sandi di halaman masuk.'
+        );
+      }
       return 'Masuk gagal' + (why ? ': ' + why : '. Coba lagi, atau hubungi dukungan bila berulang.');
     }
     if (result.type !== 'success') return 'Masuk gagal (' + result.type + ').';
