@@ -103,7 +103,11 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 // Returns null on success, or a message to show the user.
 // `provider: 'google'` skips the Keycloak login page and goes straight to Google (kc_idp_hint). A person who has
 // no account yet is registered automatically from the Google account, so there is no separate "register with Google".
+let loginInFlight = false; // two overlapping logins would answer each other's state and be rejected
+
 export async function login(fresh = false, register = false, provider?: 'google'): Promise<string | null> {
+  if (loginInFlight) return null;
+  loginInFlight = true;
   try {
     const discovery = await AuthSession.fetchDiscoveryAsync(ISSUER);
     const request = new AuthSession.AuthRequest({
@@ -121,6 +125,11 @@ export async function login(fresh = false, register = false, provider?: 'google'
     // Closing the browser is not an error; anything else tells the user what the login server said.
     if (result.type === 'cancel' || result.type === 'dismiss') return null;
     if (result.type === 'error') {
+      // The browser finished an older login (for example a reset-password link opened later), so its answer does
+      // not belong to this attempt.
+      if (result.error?.code === 'state_mismatch' || /Cross-Site request/i.test(result.error?.message ?? '')) {
+        return 'Sesi masuk sebelumnya sudah kedaluwarsa. Tutup tab browser yang masih terbuka, lalu tekan Masuk sekali lagi.';
+      }
       const why = result.params?.error_description || result.params?.error || result.error?.message;
       if (provider === 'google') {
         // An e-mail that already has an account made another way cannot be linked silently (a safety rule of the
@@ -148,6 +157,8 @@ export async function login(fresh = false, register = false, provider?: 'google'
     return null;
   } catch (e) {
     return 'Error: ' + String(e);
+  } finally {
+    loginInFlight = false;
   }
 }
 
