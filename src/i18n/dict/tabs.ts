@@ -5,6 +5,7 @@ export const tabs = {
   'home.nextExpiring': { id: 'Garansi berakhir berikutnya', en: 'Next warranty to end', ar: 'أقرب ضمان سينتهي' },
   'home.nextReturn': { id: 'Batas pengembalian terdekat', en: 'Nearest return deadline', ar: 'أقرب موعد للإرجاع' },
   'home.hello': { id: 'Halo, selamat datang 👋', en: 'Hello, welcome 👋', ar: 'مرحبًا بك 👋' },
+  'home.helloName': { id: 'Halo, {name} 👋', en: 'Hello, {name} 👋', ar: 'مرحبًا، {name} 👋' },
   'home.tagline': {
     id: 'Semua bukti pembelian dan garansi dalam satu tempat.',
     en: 'All your proof of purchase and warranties in one place.',

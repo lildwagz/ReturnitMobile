@@ -10,7 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BannerStyle, BannerStyleDark } from '@/constants/theme';
 import { t, tn } from '@/i18n';
-import { Summary, useHomeData, useRefetchStaleOnFocus } from '@/lib/queries';
+import { Summary, useAccountQuery, useHomeData, useRefetchStaleOnFocus } from '@/lib/queries';
 import { daysLeft, formatDate, formatIDR } from '@/lib/warranty';
 import { keys } from '@/lib/query-client';
 import { useSignedIn } from '@/lib/use-signed-in';
@@ -73,6 +73,9 @@ export default function HomeScreen() {
   const signedIn = useSignedIn() === true; // the tabs only exist while signed in
   const { summary, active, expiring, total, recent, error, loading, refetch } = useHomeData(signedIn);
   useRefetchStaleOnFocus(keys.purchases);
+  // The first word of the account name (from Keycloak or Google), for the greeting; nothing until it is known.
+  const account = useAccountQuery<{ displayName?: string | null }>(signedIn);
+  const firstName = account.data?.displayName?.trim().split(/s+/)[0];
 
   return (
     <ThemedView style={{ flex: 1 }}>
@@ -81,7 +84,7 @@ export default function HomeScreen() {
           contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 120 }}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}>
           <View style={{ gap: 4 }}>
-            <ThemedText type="title">{t('home.hello')}</ThemedText>
+            <ThemedText type="title">{firstName ? t('home.helloName', { name: firstName }) : t('home.hello')}</ThemedText>
             <ThemedText themeColor="textSecondary">{t('home.tagline')}</ThemedText>
           </View>
           <UpdateBanner />
