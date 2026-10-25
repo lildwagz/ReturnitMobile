@@ -1,14 +1,15 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { API, apiFetch, login, logout } from '@/lib/auth';
+import { apiFetch, login, logout } from '@/lib/auth';
 import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
 import { useSignedIn } from '@/lib/use-signed-in';
 import { AppButton } from '@/components/app-button';
+import { useTheme } from '@/hooks/use-theme';
 
 type Account = {
   id: string;
@@ -25,7 +26,27 @@ async function errorCode(res: Response): Promise<string | null> {
   }
 }
 
+// One line of the settings card: title, one line of help, and a control on the right.
+function SettingRow({ title, help, right, onPress, last }: { title: string; help: string; right: React.ReactNode; onPress?: () => void; last?: boolean }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      disabled={!onPress}
+      onPress={onPress}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderBottomWidth: last ? 0 : 1, borderBottomColor: theme.border }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <ThemedText style={{ fontWeight: 700 }}>{title}</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {help}
+        </ThemedText>
+      </View>
+      {right}
+    </Pressable>
+  );
+}
+
 export default function SettingsScreen() {
+  const router = useRouter();
   const signedIn = useSignedIn();
   const [account, setAccount] = useState<Account | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -111,7 +132,6 @@ export default function SettingsScreen() {
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 24, gap: 16, paddingBottom: 120 }}>
           <ThemedText type="title">Pengaturan</ThemedText>
-          <ThemedText type="small">{'Server: ' + API}</ThemedText>          
           {!signedIn ? (
             <ThemedText>Anda belum masuk. Buka tab Home untuk masuk.</ThemedText>
           ) : (
@@ -144,11 +164,20 @@ export default function SettingsScreen() {
               )}
 
               {message && <ThemedText>{message}</ThemedText>}
-                            <Pressable onPress={() => setShowPrivacy((v) => !v)}>
-                <ThemedText style={{ fontWeight: '700' }}>
-                  {showPrivacy ? 'Privasi & keamanan ▲' : 'Privasi & keamanan ▼'}
-                </ThemedText>
-              </Pressable>
+                            <ThemedView type="backgroundElement" style={{ borderRadius: 16, paddingHorizontal: 14 }}>
+                <SettingRow
+                  title="Preferensi pengingat"
+                  help="Pengingat 30, 14, 7, 3, dan 1 hari sebelum akhir garansi."
+                  right={<AppButton variant="secondary" title="Atur →" onPress={() => router.push('/reminders' as never)} />}
+                />
+                <SettingRow
+                  title="Privasi & keamanan"
+                  help="Struk disimpan privat dan hanya dapat dibuka oleh pemilik akun."
+                  right={<ThemedText>{showPrivacy ? '▲' : '🔒'}</ThemedText>}
+                  onPress={() => setShowPrivacy((v) => !v)}
+                  last
+                />
+              </ThemedView>
               {showPrivacy && (
                 <ThemedView type="backgroundElement" style={{ padding: 14, borderRadius: 14, gap: 8 }}>
                   <ThemedText type="small">
