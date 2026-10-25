@@ -2,6 +2,7 @@ import { Platform, StyleSheet, Text, type TextProps, type TextStyle } from 'reac
 
 import { Brand, Fonts, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { currentLanguage } from '@/i18n';
 
 export type ThemedTextProps = TextProps & {
   type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code';
@@ -10,11 +11,13 @@ export type ThemedTextProps = TextProps & {
 
 // Custom fonts have one file per weight, so the weight in the style picks the family
 // (the families are loaded in src/app/_layout.tsx). Until they load the system font is used.
-function family(weight: unknown): string {
+// Arabic text uses Noto Sans Arabic, which has the Arabic letters the Latin font lacks.
+export function family(weight: unknown): string {
   const w = Number(weight ?? 400);
-  if (w >= 600) return 'PlusJakartaSans_700Bold';
-  if (w >= 500) return 'PlusJakartaSans_500Medium';
-  return 'PlusJakartaSans_400Regular';
+  const base = currentLanguage() === 'ar' ? 'NotoSansArabic' : 'PlusJakartaSans';
+  if (w >= 600) return base + '_700Bold';
+  if (w >= 500) return base + '_500Medium';
+  return base + '_400Regular';
 }
 
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {

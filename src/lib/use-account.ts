@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 
+import { t } from '@/i18n';
 import { apiFetch, login } from '@/lib/auth';
-import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
+import { connectionError, errorMessage } from '@/lib/purchase';
 import { useAccountQuery, useRefetchStaleOnFocus } from '@/lib/queries';
 import { keys } from '@/lib/query-client';
 
@@ -42,10 +43,10 @@ export function useAccount(signedIn: boolean | null) {
     try {
       let res = await apiFetch('/account', { method: 'DELETE' });
       if (res.status === 401 && (await errorCode(res)) === 'reauthentication_required') {
-        setMessage('Untuk keamanan, masuk sekali lagi untuk melanjutkan.');
+        setMessage(t('account.reauth'));
         const problem = await login(true);
         if (problem) {
-          setMessage('Masuk ulang tidak selesai, jadi penghapusan dibatalkan.');
+          setMessage(t('account.reauthFailed'));
           return;
         }
         res = await apiFetch('/account', { method: 'DELETE' });
@@ -54,12 +55,12 @@ export function useAccount(signedIn: boolean | null) {
         setMessage(null);
         await loadAccount();
       } else if (res.status === 401) {
-        setMessage('Login belum cukup baru. Coba lagi.');
+        setMessage(t('account.loginNotFresh'));
       } else {
         setMessage(await errorMessage(res));
       }
     } catch {
-      setMessage(CONNECTION_ERROR);
+      setMessage(connectionError());
     } finally {
       setBusy(false);
     }
@@ -67,11 +68,11 @@ export function useAccount(signedIn: boolean | null) {
 
   function confirmDeletion() {
     Alert.alert(
-      'Hapus akun?',
-      'Akun dijadwalkan terhapus permanen setelah masa tunggu (biasanya 7 hari). Selama masa tunggu Anda dapat membatalkan. Setelah itu, semua pembelian, struk, dan pengingat hilang dan tidak dapat dipulihkan.',
+      t('account.deleteTitle'),
+      t('account.deleteBody'),
       [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus akun', style: 'destructive', onPress: requestDeletion },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('account.deleteConfirm'), style: 'destructive', onPress: requestDeletion },
       ],
     );
   }
@@ -82,10 +83,10 @@ export function useAccount(signedIn: boolean | null) {
     try {
       const res = await apiFetch('/account/deletion/cancel', { method: 'POST' });
       if (res.status === 204) await loadAccount();
-      else if (res.status === 409) setMessage('Masa tunggu sudah berakhir, akun tidak dapat dipulihkan lagi.');
+      else if (res.status === 409) setMessage(t('account.graceOver'));
       else setMessage(await errorMessage(res));
     } catch {
-      setMessage(CONNECTION_ERROR);
+      setMessage(connectionError());
     } finally {
       setBusy(false);
     }

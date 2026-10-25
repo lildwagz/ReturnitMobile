@@ -10,16 +10,17 @@ import { PurchaseRow } from '@/components/purchase-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Brand, Colors } from '@/constants/theme';
+import { t, tn } from '@/i18n';
 import { usePurchaseList, useRefetchStaleOnFocus } from '@/lib/queries';
 import { keys } from '@/lib/query-client';
 import { useSignedIn } from '@/lib/use-signed-in';
 
-const FILTERS: { value: string; label: string }[] = [
-  { value: '', label: 'Semua' },
-  { value: 'active', label: 'Aktif' },
-  { value: 'expiring', label: 'Segera Berakhir' },
-  { value: 'expired', label: 'Kedaluwarsa' },
-  { value: 'none', label: 'Tidak Diketahui' },
+const filters = (): { value: string; label: string }[] => [
+  { value: '', label: t('list.all') },
+  { value: 'active', label: t('status.active') },
+  { value: 'expiring', label: t('status.expiring') },
+  { value: 'expired', label: t('status.expired') },
+  { value: 'none', label: t('status.unknown') },
 ];
 
 export default function PurchasesScreen() {
@@ -34,8 +35,8 @@ export default function PurchasesScreen() {
 
   // Wait 400 ms after the last keystroke before searching.
   useEffect(() => {
-    const t = setTimeout(() => setQuery(searchText.trim()), 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setQuery(searchText.trim()), 400);
+    return () => clearTimeout(timer);
   }, [searchText]);
 
   const list = usePurchaseList(filter, query, signedIn);
@@ -43,29 +44,29 @@ export default function PurchasesScreen() {
 
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   const total = list.data?.pages[0]?.total ?? 0;
-  const error = list.error ? list.error.message : list.isFetchNextPageError ? 'Gagal memuat data berikutnya.' : null;
+  const error = list.error ? list.error.message : list.isFetchNextPageError ? t('list.loadMoreFailed') : null;
   const filtering = !!query || !!filter;
 
   return (
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, paddingHorizontal: 16, gap: 12 }}>
         <View style={{ gap: 4 }}>
-          <ThemedText type="title">Pembelian Saya</ThemedText>
-          <ThemedText themeColor="textSecondary">Cari produk dan cek status garansinya.</ThemedText>
+          <ThemedText type="title">{t('list.title')}</ThemedText>
+          <ThemedText themeColor="textSecondary">{t('list.subtitle')}</ThemedText>
         </View>
-        <AppButton title="＋ Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
+        <AppButton title={t('home.add')} onPress={() => router.push('/purchase/new' as never)} />
 
         <AppTextInput
           value={searchText}
           onChangeText={setSearchText}
-          placeholder="Cari nama produk atau toko"
+          placeholder={t('list.search')}
           autoCorrect={false}
           maxLength={120}
         />
 
         <View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {FILTERS.map((f) => {
+            {filters().map((f) => {
               const selected = filter === f.value;
               return (
                 <Pressable
@@ -86,13 +87,13 @@ export default function PurchasesScreen() {
           </ScrollView>
         </View>
 
-        <ThemedText type="small">{total} catatan</ThemedText>
+        <ThemedText type="small">{tn('records', total)}</ThemedText>
         {error && (
           <View style={{ gap: 8 }}>
             <ThemedText type="small" themeColor="errorText">
               {error}
             </ThemedText>
-            <AppButton variant="secondary" title="Coba lagi" onPress={() => list.refetch()} />
+            <AppButton variant="secondary" title={t('home.retry')} onPress={() => list.refetch()} />
           </View>
         )}
 
@@ -112,9 +113,9 @@ export default function PurchasesScreen() {
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             list.isLoading ? null : filtering ? (
-              <EmptyState title="Tidak ada hasil" help="Coba kata kunci atau filter yang berbeda." />
+              <EmptyState title={t('list.noResults')} help={t('list.noResultsHelp')} />
             ) : (
-              <EmptyState title="Belum ada pembelian" help="Tambahkan pembelian pertama Anda." />
+              <EmptyState title={t('empty.noPurchases')} help={t('empty.addFirst')} />
             )
           }
           contentContainerStyle={{ paddingBottom: 120 }}

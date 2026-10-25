@@ -16,8 +16,9 @@ import { PurchaseRow } from '@/components/purchase-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Brand } from '@/constants/theme';
+import { t, tn, type Key } from '@/i18n';
 import { apiFetch } from '@/lib/auth';
-import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
+import { connectionError, errorMessage } from '@/lib/purchase';
 import { useAttention, useNotifications, useReminderPrefs, useRefetchStaleOnFocus } from '@/lib/queries';
 import { keys, queryClient } from '@/lib/query-client';
 import { PushPermission, getPushPermission, registerForPush } from '@/lib/push';
@@ -48,28 +49,20 @@ type Note = {
 };
 
 const DAYS = [30, 14, 7, 3, 1];
-const CHANNELS: { value: Prefs['channel']; label: string }[] = [
-  { value: 'push', label: 'Notifikasi HP' },
-  { value: 'email', label: 'E-mail' },
-  { value: 'in_app', label: 'Hanya di aplikasi' },
-];
+const CHANNELS: Prefs['channel'][] = ['push', 'email', 'in_app'];
 // One sentence that says what the current settings will do (the backend always keeps a copy in the app).
 function summarize(p: Prefs): string {
-  if (!p.enabled) return 'Pengingat dimatikan. Tidak ada pengingat yang akan dikirim.';
-  if (p.daysBefore.length === 0) return 'Pilih minimal satu hari agar pengingat dikirim.';
-  const days = [...p.daysBefore].sort((a, b) => b - a).join(', ');
-  const zone = !p.timezone || p.timezone === 'Asia/Jakarta' ? 'WIB' : p.timezone;
+  if (!p.enabled) return t('rem.sum.off');
+  if (p.daysBefore.length === 0) return t('rem.sum.noDays');
+  const days = [...p.daysBefore].sort((a, b) => b - a).join(t('rem.listSep'));
+  const zone = !p.timezone || p.timezone === 'Asia/Jakarta' ? t('rem.zoneWib') : p.timezone;
   const how =
-    p.channel === 'push'
-      ? 'lewat notifikasi HP dan di Riwayat pengingat'
-      : p.channel === 'email'
-        ? 'lewat e-mail dan di Riwayat pengingat'
-        : 'hanya di Riwayat pengingat';
+    p.channel === 'push' ? t('rem.sum.viaPush') : p.channel === 'email' ? t('rem.sum.viaEmail') : t('rem.sum.viaApp');
   const quiet =
     p.quietHoursStart && p.quietHoursEnd
-      ? ` Pengingat yang jatuh pada jam tenang (${p.quietHoursStart}–${p.quietHoursEnd}) dikirim setelah jam tenang selesai.`
+      ? t('rem.sum.quiet', { start: p.quietHoursStart, end: p.quietHoursEnd })
       : '';
-  return `Anda akan diingatkan ${days} hari sebelum garansi berakhir, pukul 09.00 ${zone}, ${how}.${quiet}`;
+  return t('rem.sum.main', { days, zone, how, quiet });
 }
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -89,14 +82,6 @@ function Chip({ label, selected, onPress }: { label: string; selected: boolean; 
     </Pressable>
   );
 }
-
-const DAY_HELP: Record<number, string> = {
-  30: 'Pengingat awal untuk memeriksa syarat garansi.',
-  14: 'Pengingat lanjutan.',
-  7: 'Pengingat lanjutan sebelum masa garansi berakhir.',
-  3: 'Pengingat mendekati akhir garansi.',
-  1: 'Pengingat terakhir sehari sebelum garansi berakhir.',
-};
 
 // A setting with a title, one line of help and a switch, as in the prototype.
 function PrefRow({ title, help, value, onChange }: { title: string; help: string; value: boolean; onChange: (v: boolean) => void }) {
@@ -176,11 +161,11 @@ export default function RemindersScreen() {
     if (!prefs) return;
     setSaveMsg(null);
     if (prefs.enabled && prefs.daysBefore.length === 0) {
-      setSaveMsg('Pilih minimal satu hari, atau matikan pengingat.');
+      setSaveMsg(t('rem.err.noDay'));
       return;
     }
     if (quietOn && !(HHMM.test(prefs.quietHoursStart ?? '') && HHMM.test(prefs.quietHoursEnd ?? ''))) {
-      setSaveMsg('Jam tenang harus berformat JJ:MM, contoh 22:00.');
+      setSaveMsg(t('rem.err.quiet'));
       return;
     }
     // PUT replaces everything, so every field is sent.
@@ -204,12 +189,12 @@ export default function RemindersScreen() {
       if (res.ok) {
         queryClient.setQueryData(keys.prefs, await res.json());
         setPrefs(null);
-        setSaveMsg('Pengaturan tersimpan.');
+        setSaveMsg(t('rem.saved'));
       } else {
         setSaveMsg(await errorMessage(res));
       }
     } catch {
-      setSaveMsg(CONNECTION_ERROR);
+      setSaveMsg(connectionError());
     } finally {
       setSaving(false);
     }
@@ -232,15 +217,15 @@ export default function RemindersScreen() {
         const at = new Date((await res.json()).scheduledAt);
         const day = at.getFullYear() + '-' + String(at.getMonth() + 1).padStart(2, '0') + '-' + String(at.getDate()).padStart(2, '0');
         const time = String(at.getHours()).padStart(2, '0') + '.' + String(at.getMinutes()).padStart(2, '0');
-        showToast('Diingatkan lagi ' + formatDate(day) + ' pukul ' + time + '.');
+        showToast(t('rem.snoozed', { date: formatDate(day), time }));
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
       } else if (res.status === 422) {
-        showToast('Pengingat ini tidak bisa ditunda lagi (tanggalnya terlalu dekat atau sudah berubah).');
+        showToast(t('rem.snoozeNotPossible'));
       } else {
         showToast(await errorMessage(res));
       }
     } catch {
-      showToast(CONNECTION_ERROR);
+      showToast(connectionError());
     } finally {
       setSnoozeBusy(false);
       setSnoozing(null);
@@ -276,26 +261,25 @@ export default function RemindersScreen() {
   const header = (
     <View style={{ gap: 10, paddingBottom: 12 }}>
       <View style={{ gap: 4 }}>
-        <ThemedText type="title">Pengingat Garansi</ThemedText>
-        <ThemedText themeColor="textSecondary">Atur kapan ReturnIt mengingatkan Anda.</ThemedText>
+        <ThemedText type="title">{t('rem.title')}</ThemedText>
+        <ThemedText themeColor="textSecondary">{t('rem.subtitle')}</ThemedText>
       </View>
 
       {perm && perm.status !== 'granted' && (prefs?.channel ?? 'push') === 'push' && (
         <ThemedView type="backgroundElement" style={{ padding: 12, borderRadius: 12, gap: 8 }}>
           <ThemedText>
-            Notifikasi HP dimatikan, jadi pengingat hanya muncul di Riwayat pengingat di bawah dan tidak
-            dialihkan ke e-mail.
+            {t('rem.pushOff')}
           </ThemedText>
           {perm.canAskAgain ? (
             <AppButton
-              title="Izinkan notifikasi"
+              title={t('rem.allowPush')}
               onPress={async () => {
                 await registerForPush();
                 setPerm(await getPushPermission());
               }}
             />
           ) : (
-            <AppButton variant="secondary" title="Buka pengaturan aplikasi" onPress={() => Linking.openSettings()} />
+            <AppButton variant="secondary" title={t('rs.openSettings')} onPress={() => Linking.openSettings()} />
           )}
         </ThemedView>
       )}
@@ -304,8 +288,8 @@ export default function RemindersScreen() {
       {prefs && (
         <>
           <PrefRow
-            title="Pengingat garansi"
-            help="Aktifkan pengingat untuk item dengan tanggal akhir yang diketahui. Dikirim pukul 09:00."
+            title={t('rem.enabledTitle')}
+            help={t('rem.enabledHelp')}
             value={prefs.enabled}
             onChange={(v) => {
               setSaveMsg(null);
@@ -315,34 +299,33 @@ export default function RemindersScreen() {
           {DAYS.map((d) => (
             <PrefRow
               key={d}
-              title={d + ' hari sebelumnya'}
-              help={DAY_HELP[d]}
+              title={tn('daysBefore', d)}
+              help={t(('rem.day' + d) as Key)}
               value={prefs.daysBefore.includes(d)}
               onChange={() => toggleDay(d)}
             />
           ))}
 
-          <ThemedText style={{ fontWeight: 700 }}>Kirim juga lewat</ThemedText>
+          <ThemedText style={{ fontWeight: 700 }}>{t('rem.alsoVia')}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Pengingat selalu muncul di Riwayat pengingat di bawah. Pilihan ini menambah satu pesan: notifikasi di HP,
-            e-mail ke akun Anda, atau tidak ada. Hanya satu yang bisa dipilih.
+            {t('rem.alsoViaHelp')}
           </ThemedText>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {CHANNELS.map((c) => (
               <Chip
-                key={c.value}
-                label={c.label}
-                selected={prefs.channel === c.value}
+                key={c}
+                label={t(('rem.channel.' + c) as Key)}
+                selected={prefs.channel === c}
                 onPress={() => {
                   setSaveMsg(null);
-                  setPrefs({ ...prefs, channel: c.value });
+                  setPrefs({ ...prefs, channel: c });
                 }}
               />
             ))}
           </View>
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <ThemedText>Jam tenang</ThemedText>
+            <ThemedText>{t('rem.quiet')}</ThemedText>
             <Switch
               value={quietOn}
               onValueChange={(v) => {
@@ -358,25 +341,25 @@ export default function RemindersScreen() {
           {quietOn && (
             <>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <ThemedText type="small">Mulai</ThemedText>
+                <ThemedText type="small">{t('rem.from')}</ThemedText>
                 <AppTextInput
                   style={timeInput}
                   value={prefs.quietHoursStart ?? ''}
-                  onChangeText={(t) => {
+                  onChangeText={(v) => {
                     setSaveMsg(null);
-                    setPrefs({ ...prefs, quietHoursStart: t });
+                    setPrefs({ ...prefs, quietHoursStart: v });
                   }}
                   placeholder="22:00"
                  
                   maxLength={5}
                 />
-                <ThemedText type="small">Selesai</ThemedText>
+                <ThemedText type="small">{t('rem.to')}</ThemedText>
                 <AppTextInput
                   style={timeInput}
                   value={prefs.quietHoursEnd ?? ''}
-                  onChangeText={(t) => {
+                  onChangeText={(v) => {
                     setSaveMsg(null);
-                    setPrefs({ ...prefs, quietHoursEnd: t });
+                    setPrefs({ ...prefs, quietHoursEnd: v });
                   }}
                   placeholder="07:00"
                  
@@ -384,30 +367,30 @@ export default function RemindersScreen() {
                 />
               </View>
               <ThemedText type="small">
-                Pengingat yang jatuh pada jam tenang dikirim setelah jam tenang berakhir.
+                {t('rem.quietHelp')}
               </ThemedText>
             </>
           )}
 
           <ThemedView type="backgroundElement" style={{ padding: 12, borderRadius: 12, gap: 4 }}>
             <ThemedText type="small" style={{ fontWeight: 700 }}>
-              Ringkasan (berlaku setelah disimpan)
+              {t('rem.summaryTitle')}
             </ThemedText>
             <ThemedText type="small">{summarize(prefs)}</ThemedText>
           </ThemedView>
 
-          {saving ? <ActivityIndicator /> : <AppButton title="Simpan pengaturan" onPress={save} />}
+          {saving ? <ActivityIndicator /> : <AppButton title={t('rem.save')} onPress={save} />}
           {saveMsg && <ThemedText type="small">{saveMsg}</ThemedText>}
         </>
       )}
 
       <ThemedText type="subtitle" style={{ fontSize: 18, lineHeight: 24, marginTop: 12 }}>
-        Garansi yang perlu diperhatikan
+        {t('rem.attentionTitle')}
       </ThemedText>
       {attention.length === 0 ? (
         <EmptyState
-          title="Belum ada garansi mendekati akhir"
-          help="Item yang perlu diperhatikan akan tampil di sini."
+          title={t('rem.attentionEmpty')}
+          help={t('rem.attentionEmptyHelp')}
         />
       ) : (
         attention.map((p) => (
@@ -416,14 +399,14 @@ export default function RemindersScreen() {
       )}
 
       <ThemedText type="subtitle" style={{ fontSize: 18, lineHeight: 24, marginTop: 12 }}>
-        Riwayat pengingat
+        {t('rem.history')}
       </ThemedText>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <ThemedText type="small">Hanya yang belum dibaca</ThemedText>
+        <ThemedText type="small">{t('rem.unreadOnly')}</ThemedText>
         <Switch value={unreadOnly} onValueChange={setUnreadOnly} />
       </View>
       {notesError && <ThemedText themeColor="errorText">{notesError}</ThemedText>}
-      {(prefsError || notesError) && <AppButton variant="secondary" title="Coba lagi" onPress={loadAll} />}
+      {(prefsError || notesError) && <AppButton variant="secondary" title={t('rem.retry')} onPress={loadAll} />}
     </View>
   );
 
@@ -442,8 +425,8 @@ export default function RemindersScreen() {
           ListEmptyComponent={
             loading ? null : (
               <EmptyState
-                title={unreadOnly ? 'Tidak ada pengingat yang belum dibaca' : 'Belum ada pengingat'}
-                help="Pengingat garansi akan tampil di sini saat waktunya tiba."
+                title={unreadOnly ? t('rem.emptyUnread') : t('rem.empty')}
+                help={t('rem.emptyHelp')}
               />
             )
           }
@@ -456,15 +439,15 @@ export default function RemindersScreen() {
                   padding: 14,
                   borderRadius: 14,
                   gap: 4,
-                  borderLeftWidth: item.read ? 0 : 4,
-                  borderLeftColor: Brand.primary,
+                  borderStartWidth: item.read ? 0 : 4,
+                  borderStartColor: Brand.primary,
                 }}>
                 <ThemedText style={{ fontWeight: item.read ? '400' : '700' }}>{item.title}</ThemedText>
                 <ThemedText type="small">{item.body}</ThemedText>
                 <ThemedText type="small">{new Date(item.createdAt).toLocaleString()}</ThemedText>
                 {item.purchaseId ? (
                   <View style={{ alignSelf: 'flex-start', marginTop: 6 }}>
-                    <AppButton small variant="secondary" title="Ingatkan lagi" onPress={() => setSnoozing(item)} />
+                    <AppButton small variant="secondary" title={t('rem.snooze')} onPress={() => setSnoozing(item)} />
                   </View>
                 ) : null}
               </ThemedView>

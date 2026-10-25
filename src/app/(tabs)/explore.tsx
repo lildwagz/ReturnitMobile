@@ -4,9 +4,11 @@ import { Pressable, ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/app-button';
+import { LanguageSheet } from '@/components/language-sheet';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
+import { LANGUAGES, t, useLanguage } from '@/i18n';
 import { setAppLockEnabled, useAppLock } from '@/lib/app-lock';
 import { logout } from '@/lib/auth';
 import { exportPurchasesCsv } from '@/lib/export';
@@ -40,6 +42,9 @@ export default function SettingsScreen() {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [exporting, setExporting] = useState(false);
   const lock = useAppLock();
+  const { choice } = useLanguage();
+  const [langOpen, setLangOpen] = useState(false);
+  const languageName = choice === 'system' ? t('lang.system') : LANGUAGES.find((l) => l.value === choice)!.label;
   const [lockBusy, setLockBusy] = useState(false);
 
   async function toggleLock(on: boolean) {
@@ -61,42 +66,48 @@ export default function SettingsScreen() {
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 24, gap: 16, paddingBottom: 120 }}>
           <View style={{ gap: 4 }}>
-            <ThemedText type="title">Pengaturan</ThemedText>
-            <ThemedText themeColor="textSecondary">Preferensi dan pengelolaan data.</ThemedText>
+            <ThemedText type="title">{t('set.title')}</ThemedText>
+            <ThemedText themeColor="textSecondary">{t('set.subtitle')}</ThemedText>
           </View>
           {!signedIn ? (
-            <ThemedText>Anda belum masuk. Buka tab Home untuk masuk.</ThemedText>
+            <ThemedText>{t('set.signedOut')}</ThemedText>
           ) : (
             <>
               <ThemedView type="backgroundElement" style={{ borderRadius: 16, paddingHorizontal: 14 }}>
                 <SettingRow
-                  title="Akun"
+                  title={t('set.account')}
                   help={
                     account?.deletionScheduledFor
-                      ? 'Penghapusan akun dijadwalkan. Ketuk untuk membatalkan.'
-                      : (account?.email ?? 'Profil, ekspor data, dan hapus akun.')
+                      ? t('set.accountDeletion')
+                      : (account?.email ?? t('set.accountHelp'))
                   }
-                  right={<ThemedText themeColor="textSecondary" style={{ fontSize: 24 }}>›</ThemedText>}
+                  right={<ThemedText themeColor="textSecondary" style={{ fontSize: 24 }}>{t('set.chevron')}</ThemedText>}
                   onPress={() => router.push('/account' as never)}
                 />
                 <SettingRow
-                  title="Preferensi pengingat"
-                  help="Pengingat 30, 14, 7, 3, dan 1 hari sebelum akhir garansi."
-                  right={<AppButton variant="secondary" title="Atur →" onPress={() => router.push('/reminders' as never)} />}
+                  title={t('set.reminders')}
+                  help={t('set.remindersHelp')}
+                  right={<AppButton variant="secondary" title={t('set.manage')} onPress={() => router.push('/reminders' as never)} />}
                 />
                 <SettingRow
-                  title="Kunci aplikasi"
-                  help="Minta sidik jari, wajah, atau PIN HP saat aplikasi dibuka, dan setelah ditinggalkan lebih dari 30 detik."
-                  right={<Switch value={lock.enabled} onValueChange={toggleLock} disabled={lockBusy} accessibilityLabel="Kunci aplikasi" />}
+                  title={t('set.language')}
+                  help={languageName}
+                  right={<AppButton small variant="secondary" title={t('set.manage')} onPress={() => setLangOpen(true)} />}
+                  onPress={() => setLangOpen(true)}
                 />
                 <SettingRow
-                  title="Ekspor data"
-                  help="Unduh daftar pembelian sebagai file CSV."
-                  right={<AppButton small variant="secondary" title={exporting ? 'Menyiapkan…' : 'Ekspor CSV'} onPress={exportData} disabled={exporting} />}
+                  title={t('set.appLock')}
+                  help={t('set.appLockHelp')}
+                  right={<Switch value={lock.enabled} onValueChange={toggleLock} disabled={lockBusy} accessibilityLabel={t('set.appLock')} />}
                 />
                 <SettingRow
-                  title="Privasi & keamanan"
-                  help="Struk disimpan privat dan hanya dapat dibuka oleh pemilik akun."
+                  title={t('set.export')}
+                  help={t('set.exportHelp')}
+                  right={<AppButton small variant="secondary" title={exporting ? t('set.exporting') : t('set.exportCsv')} onPress={exportData} disabled={exporting} />}
+                />
+                <SettingRow
+                  title={t('set.privacy')}
+                  help={t('set.privacyHelp')}
                   right={<ThemedText>{showPrivacy ? '▲' : '🔒'}</ThemedText>}
                   onPress={() => setShowPrivacy((v) => !v)}
                   last
@@ -105,30 +116,27 @@ export default function SettingsScreen() {
               {showPrivacy && (
                 <ThemedView type="backgroundElement" style={{ padding: 14, borderRadius: 14, gap: 8 }}>
                   <ThemedText type="small">
-                    Data yang disimpan: profil Anda, catatan pembelian, file struk, pengaturan pengingat,
-                    riwayat pengingat, dan token notifikasi perangkat.
+                    {t('set.privacy1')}
                   </ThemedText>
                   <ThemedText type="small">
-                    File struk hanya boleh PDF, JPEG atau PNG, dipindai terhadap malware sebelum disimpan, dan
-                    disimpan secara privat. Struk dibuka lewat tautan sementara yang berlaku beberapa menit.
+                    {t('set.privacy2')}
                   </ThemedText>
                   <ThemedText type="small">
-                    Menghapus struk atau pembelian ikut menghapus file-nya. Token notifikasi dihapus saat Anda
-                    keluar dari aplikasi.
+                    {t('set.privacy3')}
                   </ThemedText>
                   <ThemedText type="small">
-                    Menghapus akun dijadwalkan dengan masa tunggu (biasanya 7 hari) dan dapat dibatalkan.
-                    Setelah itu, akun, pembelian, struk, dan pengingat dihapus permanen.
+                    {t('set.privacy4')}
                   </ThemedText>
                   <ThemedText type="small">
-                    Data Anda tidak dapat dilihat pengguna lain. Aplikasi tidak pernah melihat kata sandi Anda.
+                    {t('set.privacy5')}
                   </ThemedText>
                 </ThemedView>
               )}
-              <AppButton variant="secondary" title="Keluar" onPress={logout} />
+              <AppButton variant="secondary" title={t('set.signOut')} onPress={logout} />
             </>
           )}
         </ScrollView>
+        <LanguageSheet visible={langOpen} onClose={() => setLangOpen(false)} />
       </SafeAreaView>
     </ThemedView>
   );

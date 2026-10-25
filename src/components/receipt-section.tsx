@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, View } from 'react-native';
 
 import { PdfViewer } from '@/components/pdf-viewer';
+import { t } from '@/i18n';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
 import { apiFetch } from '@/lib/auth';
-import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
+import { connectionError, Purchase, errorMessage } from '@/lib/purchase';
 import { AppButton } from '@/components/app-button';
 import { captureReceipt, formatSize, pickReceipt, uploadReceipt } from '@/lib/receipt';
 import { cachedReceipt, downloadReceipt, forgetReceipt, receiptExt, receiptKey } from '@/lib/receipt-cache';
@@ -43,7 +44,7 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
       }
       return (await res.json()).url as string;
     } catch {
-      setMessage(CONNECTION_ERROR);
+      setMessage(connectionError());
       return null;
     }
   }, [purchaseId]);
@@ -87,7 +88,7 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
       try {
         await Linking.openURL(url);
       } catch {
-        setMessage('Tidak dapat membuka struk.');
+        setMessage(t('rs.cannotOpen'));
       }
     }
     setBusy(false);
@@ -101,7 +102,7 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
     if (!error) {
       forgetReceipt(purchaseId);
       onChanged();
-    } else setMessage(error === CONNECTION_ERROR ? error + ' Catatan tetap tersimpan, coba unggah lagi.' : error);
+    } else setMessage(error === connectionError() ? t('rs.savedRetryUpload', { error }) : error);
   }
 
   async function choose(pick: typeof pickReceipt) {
@@ -117,10 +118,10 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
   const takePhoto = () => choose(captureReceipt);
 
   function confirmRemove() {
-    Alert.alert('Hapus struk?', 'File struk akan dihapus permanen.', [
-      { text: 'Batal', style: 'cancel' },
+    Alert.alert(t('rs.removeTitle'), t('rs.removeBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Hapus',
+        text: t('rs.remove'),
         style: 'destructive',
         onPress: async () => {
           setBusy(true);
@@ -131,7 +132,7 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
               onChanged();
             } else setMessage(await errorMessage(res));
           } catch {
-            setMessage(CONNECTION_ERROR);
+            setMessage(connectionError());
           } finally {
             setBusy(false);
           }
@@ -151,12 +152,12 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
           </ThemedText>
         </ThemedView>
         <View style={{ flex: 1 }}>
-          <ThemedText style={{ fontWeight: 700 }}>Struk pembelian</ThemedText>
+          <ThemedText style={{ fontWeight: 700 }}>{t('rs.title')}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            {receipt ? receipt.fileName + ' (' + formatSize(receipt.sizeBytes) + ')' : 'Belum ada struk terlampir'}
+            {receipt ? receipt.fileName + ' (' + formatSize(receipt.sizeBytes) + ')' : t('rs.none')}
           </ThemedText>
         </View>
-        {!receipt && <AppButton variant="secondary" title="Tambah" onPress={pickAndUpload} disabled={busy} />}
+        {!receipt && <AppButton variant="secondary" title={t('rs.add')} onPress={pickAndUpload} disabled={busy} />}
       </View>
       {receipt ? (
         <>
@@ -171,11 +172,11 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
           {isImage && !previewUri && !message && <ActivityIndicator />}
           {isImage && previewFailed && (
             <View style={{ gap: 8 }}>
-              <ThemedText themeColor="errorText">Pratinjau gagal dimuat.</ThemedText>
-              <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />
+              <ThemedText themeColor="errorText">{t('rs.previewFailed')}</ThemedText>
+              <AppButton variant="secondary" title={t('rs.retry')} onPress={loadPreview} />
             </View>
           )}
-          {isImage && message && !previewUri && <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />}
+          {isImage && message && !previewUri && <AppButton variant="secondary" title={t('rs.retry')} onPress={loadPreview} />}
 
           {isPdf && previewUri && !previewFailed && (
             <View style={{ gap: 6 }}>
@@ -188,7 +189,7 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
               />
               {pdfPages > 0 && (
                 <ThemedText type="small" style={{ textAlign: 'center' }}>
-                  {'Halaman ' + pdfPage + ' dari ' + pdfPages}
+                  {t('rs.pdfPage', { page: pdfPage, pages: pdfPages })}
                 </ThemedText>
               )}
             </View>
@@ -196,20 +197,20 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
           {isPdf && !previewUri && !message && <ActivityIndicator />}
           {isPdf && previewFailed && (
             <View style={{ gap: 8 }}>
-              <ThemedText themeColor="errorText">Pratinjau PDF gagal dimuat.</ThemedText>
-              <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />
-              <AppButton variant="secondary" title="Unduh PDF (cadangan)" onPress={openPdf} disabled={busy} />
+              <ThemedText themeColor="errorText">{t('rs.pdfFailed')}</ThemedText>
+              <AppButton variant="secondary" title={t('rs.retry')} onPress={loadPreview} />
+              <AppButton variant="secondary" title={t('rs.pdfDownload')} onPress={openPdf} disabled={busy} />
             </View>
           )}
-          {isPdf && message && !previewUri && <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />}
-          <AppButton variant="secondary" title="Ganti struk" onPress={pickAndUpload} disabled={busy} />
-          <AppButton variant="secondary" title="Ambil foto baru" onPress={takePhoto} disabled={busy} />
-          <AppButton title="Hapus struk" variant="danger" onPress={confirmRemove} disabled={busy} />
+          {isPdf && message && !previewUri && <AppButton variant="secondary" title={t('rs.retry')} onPress={loadPreview} />}
+          <AppButton variant="secondary" title={t('rs.replace')} onPress={pickAndUpload} disabled={busy} />
+          <AppButton variant="secondary" title={t('rs.newPhoto')} onPress={takePhoto} disabled={busy} />
+          <AppButton title={t('rs.removeReceipt')} variant="danger" onPress={confirmRemove} disabled={busy} />
         </>
       ) : (
-        <AppButton variant="secondary" title="Ambil foto" onPress={takePhoto} disabled={busy} />
+        <AppButton variant="secondary" title={t('rs.takePhoto')} onPress={takePhoto} disabled={busy} />
       )}
-      {cameraBlocked && <AppButton variant="secondary" title="Buka pengaturan aplikasi" onPress={() => Linking.openSettings()} />}
+      {cameraBlocked && <AppButton variant="secondary" title={t('rs.openSettings')} onPress={() => Linking.openSettings()} />}
       {busy && <ActivityIndicator />}
       {message && <ThemedText themeColor="errorText">{message}</ThemedText>}
     </ThemedView>

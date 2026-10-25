@@ -2,6 +2,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 
+import { currentLanguage, t as tr } from '@/i18n';
 import { APP_PLATFORM, APP_VERSION, noteGateFromResponse } from '@/lib/app-gate';
 import { queryClient } from '@/lib/query-client';
 import { clearReceiptCache } from '@/lib/receipt-cache';
@@ -126,7 +127,7 @@ export async function login(fresh = false, register = false, provider?: 'google'
       redirectUri: REDIRECT,
       usePKCE: true,
       prompt: fresh ? AuthSession.Prompt.Login : undefined,
-      extraParams: { ...(fresh ? { max_age: '0' } : {}), ...(provider ? { kc_idp_hint: provider } : {}) },
+      extraParams: { ui_locales: currentLanguage(), ...(fresh ? { max_age: '0' } : {}), ...(provider ? { kc_idp_hint: provider } : {}) },
     });
     const entry = register
       ? { ...discovery, authorizationEndpoint: ISSUER + '/protocol/openid-connect/registrations' }
@@ -138,21 +139,17 @@ export async function login(fresh = false, register = false, provider?: 'google'
       // The browser finished an older login (for example a reset-password link opened later), so its answer does
       // not belong to this attempt.
       if (result.error?.code === 'state_mismatch' || /Cross-Site request/i.test(result.error?.message ?? '')) {
-        return 'Sesi masuk sebelumnya sudah kedaluwarsa. Tutup tab browser yang masih terbuka, lalu tekan Masuk sekali lagi.';
+        return tr('auth.stateMismatch');
       }
       const why = result.params?.error_description || result.params?.error || result.error?.message;
       if (provider === 'google') {
         // An e-mail that already has an account made another way cannot be linked silently (a safety rule of the
         // login server), so tell the person what to do instead of showing a bare error.
-        return (
-          'Tidak dapat masuk dengan Google' +
-          (why ? ' (' + why + ')' : '') +
-          '. Jika e-mail ini sudah punya akun dengan kata sandi, masuk dengan e-mail dan kata sandi, atau pilih Lupa kata sandi di halaman masuk.'
-        );
+        return tr('auth.googleFailed', { why: why ? ' (' + why + ')' : '' });
       }
-      return 'Masuk gagal' + (why ? ': ' + why : '. Coba lagi, atau hubungi dukungan bila berulang.');
+      return why ? tr('auth.failedWhy', { why }) : tr('auth.failed');
     }
-    if (result.type !== 'success') return 'Masuk gagal (' + result.type + ').';
+    if (result.type !== 'success') return tr('auth.failedType', { type: result.type });
     const tokens = await AuthSession.exchangeCodeAsync(
       {
         clientId: CLIENT_ID,
@@ -166,7 +163,7 @@ export async function login(fresh = false, register = false, provider?: 'google'
     notify();
     return null;
   } catch (e) {
-    return 'Error: ' + String(e);
+    return tr('auth.error', { e: String(e) });
   } finally {
     loginInFlight = false;
   }

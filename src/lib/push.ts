@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
+import { t } from '@/i18n';
 import { apiFetch } from '@/lib/auth';
 
 // Show reminders as a banner even while the app is open.
@@ -28,7 +29,7 @@ export async function registerForPush(): Promise<PushPermission | 'error'> {
   try {
     // The channel must exist before the permission prompt on Android 13+.
     await Notifications.setNotificationChannelAsync('reminders', {
-      name: 'Pengingat garansi',
+      name: t('push.channel'),
       importance: Notifications.AndroidImportance.HIGH,
     });
     let perm = await Notifications.getPermissionsAsync();

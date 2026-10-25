@@ -9,6 +9,7 @@ import { UpdateBanner } from '@/components/update-banner';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BannerStyle, BannerStyleDark } from '@/constants/theme';
+import { t, tn } from '@/i18n';
 import { Summary, useHomeData, useRefetchStaleOnFocus } from '@/lib/queries';
 import { daysLeft, formatDate, formatIDR } from '@/lib/warranty';
 import { keys } from '@/lib/query-client';
@@ -36,7 +37,7 @@ function Highlights({ summary, onOpen }: { summary: Summary; onOpen: (id: string
   if (summary.coveredValue.length > 0) {
     rows.push({
       key: 'value',
-      label: 'Nilai barang yang masih bergaransi',
+      label: t('home.coveredValue'),
       value: summary.coveredValue.map((a) => formatIDR(a.amount, a.currency)).join(' · '),
     });
   }
@@ -47,11 +48,11 @@ function Highlights({ summary, onOpen }: { summary: Summary; onOpen: (id: string
       key,
       label,
       id: item.id,
-      value: item.productName + ' · ' + formatDate(item.date) + (left === 0 ? ' (hari ini)' : ' (' + left + ' hari lagi)'),
+      value: item.productName + ' · ' + formatDate(item.date) + ' (' + (left === 0 ? t('home.today') : tn('daysLeft', left)) + ')',
     });
   };
-  dated('Garansi berakhir berikutnya', summary.nextExpiring, 'expiring');
-  dated('Batas pengembalian terdekat', summary.nextReturn, 'return');
+  dated(t('home.nextExpiring'), summary.nextExpiring, 'expiring');
+  dated(t('home.nextReturn'), summary.nextReturn, 'return');
   if (rows.length === 0) return null;
   return (
     <ThemedView type="backgroundElement" style={{ borderRadius: 16, padding: 14, gap: 12 }}>
@@ -80,38 +81,38 @@ export default function HomeScreen() {
           contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 120 }}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}>
           <View style={{ gap: 4 }}>
-            <ThemedText type="title">Halo, selamat datang 👋</ThemedText>
-            <ThemedText themeColor="textSecondary">Semua bukti pembelian dan garansi dalam satu tempat.</ThemedText>
+            <ThemedText type="title">{t('home.hello')}</ThemedText>
+            <ThemedText themeColor="textSecondary">{t('home.tagline')}</ThemedText>
           </View>
           <UpdateBanner />
-          <AppButton title="＋ Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
+          <AppButton title={t('home.add')} onPress={() => router.push('/purchase/new' as never)} />
 
           {error && (
             <View style={{ gap: 8 }}>
               <ThemedText type="small" themeColor="errorText">
                 {error}
               </ThemedText>
-              <AppButton variant="secondary" title="Coba lagi" onPress={refetch} />
+              <AppButton variant="secondary" title={t('home.retry')} onPress={refetch} />
             </View>
           )}
 
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Stat label="Garansi aktif" value={active} tone="successText" />
-            <Stat label="Segera berakhir" value={expiring} tone="warningText" />
-            <Stat label="Total pembelian" value={total} />
+            <Stat label={t('home.active')} value={active} tone="successText" />
+            <Stat label={t('home.expiring')} value={expiring} tone="warningText" />
+            <Stat label={t('home.total')} value={total} />
           </View>
           {summary && <Highlights summary={summary} onOpen={(id) => router.push(('/purchase/' + id) as never)} />}
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <ThemedText type="subtitle" style={{ fontSize: 18, lineHeight: 24 }}>
-              Pembelian terbaru
+              {t('home.recent')}
             </ThemedText>
             {recent.length > 0 && (
-              <AppButton small variant="secondary" title="Lihat semua →" onPress={() => router.push('/purchases' as never)} />
+              <AppButton small variant="secondary" title={t('home.seeAll')} onPress={() => router.push('/purchases' as never)} />
             )}
           </View>
           {recent.length === 0 && !loading && !error ? (
-            <EmptyState title="Belum ada pembelian" help="Tambahkan pembelian pertama Anda." />
+            <EmptyState title={t('empty.noPurchases')} help={t('empty.addFirst')} />
           ) : (
             recent.map((p) => (
               <PurchaseRow key={p.id} p={p} onPress={() => router.push(('/purchase/' + p.id) as never)} />

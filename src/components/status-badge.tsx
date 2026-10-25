@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { StatusStyle, StatusStyleDark } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { STATUS_LABEL, WarrantyStatus } from '@/lib/warranty';
+import { statusLabel, WarrantyStatus } from '@/lib/warranty';
 
 // Same marks as the prototype, so the status is not carried by color alone.
 const ICON: Record<WarrantyStatus, string> = { active: '✓', expiring: '◷', expired: '!', unknown: '•' };
@@ -20,7 +20,7 @@ export function StatusBadge({ status }: { status: WarrantyStatus }) {
         alignSelf: 'flex-start',
       }}>
       <ThemedText type="small" style={{ color: s.fg, fontWeight: 700 }}>
-        {ICON[status] + ' ' + STATUS_LABEL[status]}
+        {ICON[status] + ' ' + statusLabel(status)}
       </ThemedText>
     </View>
   );

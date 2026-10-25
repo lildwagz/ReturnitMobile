@@ -1,0 +1,61 @@
+export const form = {
+  'form.intro': {
+    id: 'Isi informasi dasar. Struk dapat ditambahkan sekarang atau nanti.',
+    en: 'Fill in the basics. You can add the receipt now or later.',
+    ar: 'املأ المعلومات الأساسية. يمكنك إضافة الإيصال الآن أو لاحقًا.',
+  },
+  'form.name': { id: 'Nama produk *', en: 'Product name *', ar: 'اسم المنتج *' },
+  'form.namePlaceholder': { id: 'Contoh: Headphone Sony', en: 'Example: Sony headphones', ar: 'مثال: سماعات سوني' },
+  'form.store': { id: 'Toko', en: 'Store', ar: 'المتجر' },
+  'form.storePlaceholder': { id: 'Contoh: Toko Elektronik', en: 'Example: Electronics store', ar: 'مثال: متجر إلكترونيات' },
+  'form.purchaseDate': { id: 'Tanggal pembelian *', en: 'Purchase date *', ar: 'تاريخ الشراء *' },
+  'form.duration': { id: 'Durasi garansi', en: 'Warranty duration', ar: 'مدة الضمان' },
+  'form.keep': { id: 'Tetap', en: 'Keep', ar: 'إبقاء' },
+  'form.unknown': { id: 'Tidak diketahui', en: 'Unknown', ar: 'غير معروف' },
+  'form.warrantyEnds': { id: 'Garansi berakhir: {date}', en: 'Warranty ends: {date}', ar: 'ينتهي الضمان: {date}' },
+  'form.returnPeriod': { id: 'Batas pengembalian (opsional)', en: 'Return deadline (optional)', ar: 'آخر موعد للإرجاع (اختياري)' },
+  'form.none': { id: 'Tidak ada', en: 'None', ar: 'لا يوجد' },
+  'form.returnPreview': {
+    id: 'Batas pengembalian: {date}. Anda akan diingatkan 3 dan 1 hari sebelumnya.',
+    en: 'Return deadline: {date}. You will be reminded 3 days and 1 day before.',
+    ar: 'آخر موعد للإرجاع: {date}. سنذكّرك قبل 3 أيام وقبل يوم واحد.',
+  },
+  'form.price': { id: 'Harga (opsional)', en: 'Price (optional)', ar: 'السعر (اختياري)' },
+  'form.pricePlaceholder': { id: 'Contoh: 1500000', en: 'Example: 1500000', ar: 'مثال: 1500000' },
+  'form.notes': { id: 'Catatan', en: 'Notes', ar: 'ملاحظات' },
+  'form.optional': { id: 'Opsional', en: 'Optional', ar: 'اختياري' },
+  'form.receiptLabel': {
+    id: 'Struk (opsional, PDF/JPEG/PNG maks. 10 MB)',
+    en: 'Receipt (optional, PDF/JPEG/PNG, max 10 MB)',
+    ar: 'الإيصال (اختياري، PDF/JPEG/PNG بحد أقصى 10 ميغابايت)',
+  },
+  'form.fileChosen': { id: 'File dipilih', en: 'File selected', ar: 'تم اختيار ملف' },
+  'form.clearChoice': { id: 'Hapus pilihan', en: 'Clear selection', ar: 'مسح الاختيار' },
+  'form.pickFile': { id: 'Pilih file struk', en: 'Choose a receipt file', ar: 'اختيار ملف إيصال' },
+  'form.takeReceiptPhoto': { id: 'Ambil foto struk', en: 'Photograph the receipt', ar: 'تصوير الإيصال' },
+
+  'form.err.nameRequired': { id: 'Nama produk wajib diisi.', en: 'Product name is required.', ar: 'اسم المنتج مطلوب.' },
+  'form.err.nameLong': { id: 'Nama produk maksimal 160 karakter.', en: 'Product name can be at most 160 characters.', ar: 'اسم المنتج 160 حرفًا كحد أقصى.' },
+  'form.err.date': {
+    id: 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, contoh 2026-10-19.',
+    en: 'Invalid date. Use the format YYYY-MM-DD, for example 2026-10-19.',
+    ar: 'تاريخ غير صالح. استخدم الصيغة YYYY-MM-DD، مثل 2026-10-19.',
+  },
+  'form.err.storeLong': { id: 'Nama toko maksimal 160 karakter.', en: 'Store name can be at most 160 characters.', ar: 'اسم المتجر 160 حرفًا كحد أقصى.' },
+  'form.err.price': {
+    id: 'Harga harus berupa angka, tanpa titik ribuan.',
+    en: 'Price must be a number, without thousands separators.',
+    ar: 'يجب أن يكون السعر رقمًا، بدون فواصل الآلاف.',
+  },
+  'form.err.notesLong': { id: 'Catatan maksimal 2000 karakter.', en: 'Notes can be at most 2000 characters.', ar: 'الملاحظات 2000 حرف كحد أقصى.' },
+
+  // new purchase
+  'new.savedTitle': { id: 'Pembelian tersimpan', en: 'Purchase saved', ar: 'تم حفظ الشراء' },
+  'new.receiptFailed': {
+    id: 'Struk belum terunggah: {error}\nCoba lagi dari halaman ini.',
+    en: 'The receipt was not uploaded: {error}\nTry again from this page.',
+    ar: 'لم يُرفع الإيصال: {error}\nحاول مرة أخرى من هذه الصفحة.',
+  },
+  'new.saved': { id: 'Pembelian berhasil disimpan.', en: 'Purchase saved.', ar: 'تم حفظ الشراء بنجاح.' },
+  'new.submit': { id: 'Simpan Pembelian', en: 'Save purchase', ar: 'حفظ الشراء' },
+} as const;

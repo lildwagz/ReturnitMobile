@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { addMonths, daysBetween } from '@/lib/warranty';
 
 export type Purchase = {
@@ -27,7 +28,7 @@ export function initialReturnDays(p?: Purchase): number | null | 'keep' {
   return RETURN_CHOICES.includes(days) ? days : 'keep';
 }
 
-export const CONNECTION_ERROR = 'Tidak dapat terhubung ke server. Periksa koneksi dan coba lagi.';
+export const connectionError = () => t('error.connection');
 
 // A real calendar date in YYYY-MM-DD form (rejects 2026-02-30 and similar).
 export function isValidDate(s: string): boolean {
@@ -52,15 +53,15 @@ export function initialDuration(p?: Purchase): number | null | 'keep' {
 export async function errorMessage(res: Response): Promise<string> {
   if (res.status === 429) {
     const wait = res.headers.get('Retry-After');
-    return 'Terlalu banyak permintaan. Coba lagi' + (wait ? ' dalam ' + wait + ' detik.' : ' sebentar lagi.');
+    return wait ? t('error.tooManyWait', { s: wait }) : t('error.tooMany');
   }
-  if (res.status === 404) return 'Catatan tidak ditemukan.';
-  if (res.status === 409) return 'Akun bermasalah. Hubungi dukungan.';
+  if (res.status === 404) return t('error.notFound');
+  if (res.status === 409) return t('error.account');
   try {
     const data = await res.json();
-    if (data?.error?.message) return 'Gagal: ' + data.error.message;
+    if (data?.error?.message) return t('error.failed', { message: data.error.message });
   } catch {
     // body was not JSON
   }
-  return 'Terjadi kesalahan (kode ' + res.status + ').';
+  return t('error.generic', { code: res.status });
 }

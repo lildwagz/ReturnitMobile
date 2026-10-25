@@ -4,6 +4,7 @@ import { AppButton } from '@/components/app-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
+import { t } from '@/i18n';
 import { logout } from '@/lib/auth';
 import { useAccount } from '@/lib/use-account';
 import { useSignedIn } from '@/lib/use-signed-in';
@@ -31,42 +32,39 @@ export default function AccountScreen() {
         {loadError && (
           <View style={{ gap: 8 }}>
             <ThemedText themeColor="errorText">{loadError}</ThemedText>
-            <AppButton variant="secondary" title="Coba lagi" onPress={loadAccount} />
+            <AppButton variant="secondary" title={t('acc.retry')} onPress={loadAccount} />
           </View>
         )}
         {!account && !loadError && <ActivityIndicator />}
 
         {account && (
           <ThemedView type="backgroundElement" style={{ borderRadius: 16, paddingHorizontal: 14 }}>
-            <Row label="Nama" value={account.displayName || '-'} />
-            <Row label="E-mail" value={account.email} />
-            <Row label="Anggota sejak" value={formatDate(account.createdAt.slice(0, 10))} last />
+            <Row label={t('acc.name')} value={account.displayName || '-'} />
+            <Row label={t('acc.email')} value={account.email} />
+            <Row label={t('acc.since')} value={formatDate(account.createdAt.slice(0, 10))} last />
           </ThemedView>
         )}
         {account && (
           <ThemedText type="small" themeColor="textSecondary">
-            E-mail dan nama diatur di akun login Anda dan tidak dapat diubah di aplikasi. Untuk mengganti kata sandi,
-            keluar lalu pilih &quot;Lupa kata sandi&quot; di halaman masuk.
+            {t('acc.note')}
           </ThemedText>
         )}
 
         {account?.deletionScheduledFor ? (
           <ThemedView type="backgroundElement" style={{ padding: 14, borderRadius: 14, gap: 10 }}>
-            <ThemedText style={{ fontWeight: 700 }}>Penghapusan akun dijadwalkan</ThemedText>
+            <ThemedText style={{ fontWeight: 700 }}>{t('acc.deletionScheduled')}</ThemedText>
             <ThemedText>
-              {'Akun dan semua datanya akan dihapus permanen pada ' +
-                new Date(account.deletionScheduledFor).toLocaleString() +
-                '. Anda masih bisa membatalkan sebelum waktu itu. Pengingat dijeda selama masa tunggu.'}
+              {t('acc.deletionBody', { when: new Date(account.deletionScheduledFor).toLocaleString() })}
             </ThemedText>
-            {busy ? <ActivityIndicator /> : <AppButton variant="secondary" title="Batalkan penghapusan" onPress={cancelDeletion} />}
+            {busy ? <ActivityIndicator /> : <AppButton variant="secondary" title={t('acc.cancelDeletion')} onPress={cancelDeletion} />}
           </ThemedView>
         ) : (
-          account && (busy ? <ActivityIndicator /> : <AppButton title="Hapus akun" variant="danger" onPress={confirmDeletion} />)
+          account && (busy ? <ActivityIndicator /> : <AppButton title={t('acc.delete')} variant="danger" onPress={confirmDeletion} />)
         )}
 
         {message && <ThemedText>{message}</ThemedText>}
 
-        <AppButton variant="secondary" title="Keluar" onPress={logout} />
+        <AppButton variant="secondary" title={t('set.signOut')} onPress={logout} />
       </ScrollView>
     </ThemedView>
   );

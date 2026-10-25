@@ -6,12 +6,13 @@ import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
 import { PurchaseForm } from '@/components/purchase-form';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { t, tn } from '@/i18n';
 import { apiFetch } from '@/lib/auth';
 import { usePurchase } from '@/lib/queries';
 import { forgetReceipt } from '@/lib/receipt-cache';
 import { invalidatePurchases, keys, queryClient } from '@/lib/query-client';
 import { showToast } from '@/lib/toast';
-import { CONNECTION_ERROR, errorMessage, initialDuration } from '@/lib/purchase';
+import { connectionError, errorMessage, initialDuration } from '@/lib/purchase';
 import { formatDate, formatIDR, warrantyStatus } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { StatusBadge } from '@/components/status-badge';
@@ -32,7 +33,7 @@ function Line({ label, value }: { label: string; value: string }) {
 // Half-width cell of the two-column detail grid.
 function Cell({ label, value }: { label: string; value: string }) {
   return (
-    <View style={{ width: '50%', paddingRight: 8 }}>
+    <View style={{ width: '50%', paddingEnd: 8 }}>
       <Line label={label} value={value} />
     </View>
   );
@@ -59,20 +60,20 @@ export default function PurchaseDetail() {
         queryClient.setQueryData(keys.purchase(String(id)), await res.json());
         invalidatePurchases();
         setEditing(false);
-        showToast('Pembelian berhasil diperbarui.');
+        showToast(t('detail.updated'));
         return null;
       }
       return await errorMessage(res);
     } catch {
-      return CONNECTION_ERROR;
+      return connectionError();
     }
   }
 
   function confirmDelete() {
-    Alert.alert('Hapus pembelian?', 'Catatan dan struk terkait akan dihapus permanen.', [
-      { text: 'Batal', style: 'cancel' },
+    Alert.alert(t('detail.deleteTitle'), t('detail.deleteBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Hapus',
+        text: t('detail.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -81,11 +82,11 @@ export default function PurchaseDetail() {
               forgetReceipt(String(id));
               queryClient.removeQueries({ queryKey: keys.purchase(String(id)) });
               invalidatePurchases();
-              showToast('Pembelian dihapus.');
+              showToast(t('detail.deleted'));
               router.back();
-            } else Alert.alert('Gagal menghapus', await errorMessage(res));
+            } else Alert.alert(t('detail.deleteFailed'), await errorMessage(res));
           } catch {
-            Alert.alert('Gagal menghapus', CONNECTION_ERROR);
+            Alert.alert(t('detail.deleteFailed'), connectionError());
           }
         },
       },
@@ -103,8 +104,8 @@ export default function PurchaseDetail() {
   if (error || !p) {
     return (
       <ThemedView style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
-        <ThemedText>{error ?? 'Catatan tidak ditemukan.'}</ThemedText>
-        <AppButton variant="secondary" title="Coba lagi" onPress={load} />
+        <ThemedText>{error ?? t('error.notFound')}</ThemedText>
+        <AppButton variant="secondary" title={t('detail.retry')} onPress={load} />
       </ThemedView>
     );
   }
@@ -112,22 +113,22 @@ export default function PurchaseDetail() {
   if (editing) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Edit Pembelian' }} />
-        <PurchaseForm initial={p} submitLabel="Simpan perubahan" onCancel={() => setEditing(false)} onSubmit={saveEdit} />
+        <Stack.Screen options={{ title: t('detail.editTitle') }} />
+        <PurchaseForm initial={p} submitLabel={t('detail.saveChanges')} onCancel={() => setEditing(false)} onSubmit={saveEdit} />
       </>
     );
   }
 
   async function addToCalendar(title: string, date: string, notes: string) {
     const r = await addDateToCalendar({ title, date, notes });
-    if (r === 'saved') showToast('Ditambahkan ke kalender.');
-    else if (r === 'error') showToast('Tidak dapat membuka kalender di perangkat ini.');
+    if (r === 'saved') showToast(t('detail.calendarAdded'));
+    else if (r === 'error') showToast(t('detail.calendarFailed'));
   }
 
   const status = warrantyStatus(p.warrantyEndDate);
   const months = initialDuration(p);
   const duration =
-    typeof months === 'number' ? months + ' bulan' : months === 'keep' ? 'Kustom' : 'Tidak diketahui';
+    typeof months === 'number' ? tn('months', months) : months === 'keep' ? t('detail.custom') : t('common.unknown');
 
   return (
     <ThemedView style={{ flex: 1 }}>
@@ -137,7 +138,7 @@ export default function PurchaseDetail() {
             {p.productName}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            {p.storeName || 'Toko tidak diisi'}
+            {p.storeName || t('detail.noStore')}
           </ThemedText>
           <StatusBadge status={status} />
         </View>
@@ -146,11 +147,11 @@ export default function PurchaseDetail() {
         {p.returnDeadline ? <ReturnBanner date={p.returnDeadline} /> : null}
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 }}>
-          <Cell label="Tanggal pembelian" value={formatDate(p.purchaseDate)} />
-          <Cell label="Durasi garansi" value={duration} />
-          <Cell label="Harga" value={formatIDR(p.price, p.currency)} />
-          <Cell label="Tanggal akhir garansi" value={formatDate(p.warrantyEndDate)} />
-          {p.returnDeadline ? <Cell label="Batas pengembalian" value={formatDate(p.returnDeadline)} /> : null}
+          <Cell label={t('detail.purchaseDate')} value={formatDate(p.purchaseDate)} />
+          <Cell label={t('detail.duration')} value={duration} />
+          <Cell label={t('detail.price')} value={formatIDR(p.price, p.currency)} />
+          <Cell label={t('detail.endDate')} value={formatDate(p.warrantyEndDate)} />
+          {p.returnDeadline ? <Cell label={t('detail.returnDeadline')} value={formatDate(p.returnDeadline)} /> : null}
         </View>
         {p.warrantyEndDate || p.returnDeadline ? (
           <View style={{ gap: 8 }}>
@@ -158,30 +159,30 @@ export default function PurchaseDetail() {
               <AppButton
                 small
                 variant="secondary"
-                title="Tambahkan akhir garansi ke kalender"
-                onPress={() => addToCalendar('Garansi ' + p.productName + ' berakhir', p.warrantyEndDate!, 'Dicatat di ReturnIt.')}
+                title={t('detail.calWarranty')}
+                onPress={() => addToCalendar(t('detail.calWarrantyTitle', { name: p.productName }), p.warrantyEndDate!, t('detail.calNotes'))}
               />
             ) : null}
             {p.returnDeadline ? (
               <AppButton
                 small
                 variant="secondary"
-                title="Tambahkan batas pengembalian ke kalender"
-                onPress={() => addToCalendar('Batas pengembalian ' + p.productName, p.returnDeadline!, 'Dicatat di ReturnIt.')}
+                title={t('detail.calReturn')}
+                onPress={() => addToCalendar(t('detail.calReturnTitle', { name: p.productName }), p.returnDeadline!, t('detail.calNotes'))}
               />
             ) : null}
           </View>
         ) : null}
-        {p.notes ? <Line label="Catatan" value={p.notes} /> : null}
+        {p.notes ? <Line label={t('detail.notes')} value={p.notes} /> : null}
 
         <ReceiptSection purchaseId={p.id} receipt={p.receipt} onChanged={invalidatePurchases} />
 
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <View style={{ flex: 1 }}>
-            <AppButton variant="secondary" title="Edit" onPress={() => setEditing(true)} />
+            <AppButton variant="secondary" title={t('detail.edit')} onPress={() => setEditing(true)} />
           </View>
           <View style={{ flex: 1 }}>
-            <AppButton title="Hapus" variant="danger" onPress={confirmDelete} />
+            <AppButton title={t('detail.delete')} variant="danger" onPress={confirmDelete} />
           </View>
         </View>
       </ScrollView>

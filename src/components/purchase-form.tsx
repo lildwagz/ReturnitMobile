@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Brand } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { t, tn } from '@/i18n';
 import { DURATIONS, Purchase, RETURN_CHOICES, initialDuration, initialReturnDays, isValidDate } from '@/lib/purchase';
 import { addDays, addMonths, formatDate, todayLocal } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
@@ -86,12 +87,12 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, onCancel, onSu
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = 'Nama produk wajib diisi.';
-    else if (name.trim().length > 160) e.name = 'Nama produk maksimal 160 karakter.';
-    if (!isValidDate(date)) e.date = 'Tanggal tidak valid. Gunakan format TTTT-BB-HH, contoh 2026-10-19.';
-    if (store.trim().length > 160) e.store = 'Nama toko maksimal 160 karakter.';
-    if (price.trim() && !/^\d+(\.\d+)?$/.test(price.trim())) e.price = 'Harga harus berupa angka, tanpa titik ribuan.';
-    if (notes.trim().length > 2000) e.notes = 'Catatan maksimal 2000 karakter.';
+    if (!name.trim()) e.name = t('form.err.nameRequired');
+    else if (name.trim().length > 160) e.name = t('form.err.nameLong');
+    if (!isValidDate(date)) e.date = t('form.err.date');
+    if (store.trim().length > 160) e.store = t('form.err.storeLong');
+    if (price.trim() && !/^\d+(\.\d+)?$/.test(price.trim())) e.price = t('form.err.price');
+    if (notes.trim().length > 2000) e.notes = t('form.err.notesLong');
     return e;
   }
 
@@ -141,69 +142,69 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, onCancel, onSu
     <ThemedView style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
         {!initial && (
-          <ThemedText themeColor="textSecondary">Isi informasi dasar. Struk dapat ditambahkan sekarang atau nanti.</ThemedText>
+          <ThemedText themeColor="textSecondary">{t('form.intro')}</ThemedText>
         )}
-        <ThemedText type="small">Nama produk *</ThemedText>
-        <AppTextInput style={input} value={name} onChangeText={setName} placeholder="Contoh: Headphone Sony" />
+        <ThemedText type="small">{t('form.name')}</ThemedText>
+        <AppTextInput style={input} value={name} onChangeText={setName} placeholder={t('form.namePlaceholder')} />
         {errors.name && <ThemedText type="small" themeColor="errorText">{errors.name}</ThemedText>}
 
-        <ThemedText type="small">Toko / Store</ThemedText>
-        <AppTextInput style={input} value={store} onChangeText={setStore} placeholder="Contoh: Toko Elektronik" />
+        <ThemedText type="small">{t('form.store')}</ThemedText>
+        <AppTextInput style={input} value={store} onChangeText={setStore} placeholder={t('form.storePlaceholder')} />
         {errors.store && <ThemedText type="small" themeColor="errorText">{errors.store}</ThemedText>}
 
-        <ThemedText type="small">Tanggal pembelian *</ThemedText>
+        <ThemedText type="small">{t('form.purchaseDate')}</ThemedText>
         <DateField value={date} onChange={setDate} />
         {errors.date && <ThemedText type="small" themeColor="errorText">{errors.date}</ThemedText>}
 
-        <ThemedText type="small">Durasi garansi</ThemedText>
+        <ThemedText type="small">{t('form.duration')}</ThemedText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {DURATIONS.map((m) => (
-            <ChoiceChip key={m} label={m + ' bulan'} selected={duration === m} onPress={() => setDuration(m)} />
+            <ChoiceChip key={m} label={tn('months', m)} selected={duration === m} onPress={() => setDuration(m)} />
           ))}
           {initial && initialDuration(initial) === 'keep' && (
-            <ChoiceChip label="Tetap" selected={duration === 'keep'} onPress={() => setDuration('keep')} />
+            <ChoiceChip label={t('form.keep')} selected={duration === 'keep'} onPress={() => setDuration('keep')} />
           )}
-          <ChoiceChip label="Tidak diketahui" selected={duration === null} onPress={() => setDuration(null)} />
+          <ChoiceChip label={t('form.unknown')} selected={duration === null} onPress={() => setDuration(null)} />
         </View>
-        {endPreview ? <ThemedText type="small">Garansi berakhir: {formatDate(endPreview)}</ThemedText> : null}
+        {endPreview ? <ThemedText type="small">{t('form.warrantyEnds', { date: formatDate(endPreview) })}</ThemedText> : null}
 
-        <ThemedText type="small">Batas pengembalian (opsional)</ThemedText>
+        <ThemedText type="small">{t('form.returnPeriod')}</ThemedText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          <ChoiceChip label="Tidak ada" selected={returnDays === null} onPress={() => setReturnDays(null)} />
+          <ChoiceChip label={t('form.none')} selected={returnDays === null} onPress={() => setReturnDays(null)} />
           {RETURN_CHOICES.map((d) => (
-            <ChoiceChip key={d} label={d + ' hari'} selected={returnDays === d} onPress={() => setReturnDays(d)} />
+            <ChoiceChip key={d} label={tn('days', d)} selected={returnDays === d} onPress={() => setReturnDays(d)} />
           ))}
           {initial && initialReturnDays(initial) === 'keep' && (
-            <ChoiceChip label="Tetap" selected={returnDays === 'keep'} onPress={() => setReturnDays('keep')} />
+            <ChoiceChip label={t('form.keep')} selected={returnDays === 'keep'} onPress={() => setReturnDays('keep')} />
           )}
         </View>
         {returnPreview ? (
-          <ThemedText type="small">Batas pengembalian: {formatDate(returnPreview)}. Anda akan diingatkan 3 dan 1 hari sebelumnya.</ThemedText>
+          <ThemedText type="small">{t('form.returnPreview', { date: formatDate(returnPreview) })}</ThemedText>
         ) : null}
 
-        <ThemedText type="small">Harga (opsional)</ThemedText>
-        <AppTextInput style={input} value={price} onChangeText={setPrice} placeholder="Contoh: 1500000" keyboardType="numeric" />
+        <ThemedText type="small">{t('form.price')}</ThemedText>
+        <AppTextInput style={input} value={price} onChangeText={setPrice} placeholder={t('form.pricePlaceholder')} keyboardType="numeric" />
         {errors.price && <ThemedText type="small" themeColor="errorText">{errors.price}</ThemedText>}
 
-        <ThemedText type="small">Catatan</ThemedText>
-        <AppTextInput style={[input, { minHeight: 80, textAlignVertical: 'top' }]} value={notes} onChangeText={setNotes} multiline placeholder="Opsional" />
+        <ThemedText type="small">{t('form.notes')}</ThemedText>
+        <AppTextInput style={[input, { minHeight: 80, textAlignVertical: 'top' }]} value={notes} onChangeText={setNotes} multiline placeholder={t('form.optional')} />
         {errors.notes && <ThemedText type="small" themeColor="errorText">{errors.notes}</ThemedText>}
 
         {withReceipt && (
           <>
-            <ThemedText type="small">Struk (opsional, PDF/JPEG/PNG maks. 10 MB)</ThemedText>
+            <ThemedText type="small">{t('form.receiptLabel')}</ThemedText>
             {receipt ? (
               <View style={{ gap: 8 }}>
-                <ThemedText>{receipt.name ?? 'File dipilih'}</ThemedText>
-                <AppButton variant="secondary" title="Hapus pilihan" onPress={() => setReceipt(null)} disabled={busy} />
+                <ThemedText>{receipt.name ?? t('form.fileChosen')}</ThemedText>
+                <AppButton variant="secondary" title={t('form.clearChoice')} onPress={() => setReceipt(null)} disabled={busy} />
               </View>
             ) : (
               <View style={{ gap: 8 }}>
-                <AppButton variant="secondary" title="Pilih file struk" onPress={() => chooseReceipt(pickReceipt)} disabled={busy} />
-                <AppButton variant="secondary" title="Ambil foto struk" onPress={() => chooseReceipt(captureReceipt)} disabled={busy} />
+                <AppButton variant="secondary" title={t('form.pickFile')} onPress={() => chooseReceipt(pickReceipt)} disabled={busy} />
+                <AppButton variant="secondary" title={t('form.takeReceiptPhoto')} onPress={() => chooseReceipt(captureReceipt)} disabled={busy} />
               </View>
             )}
-            {cameraBlocked && <AppButton variant="secondary" title="Buka pengaturan aplikasi" onPress={() => Linking.openSettings()} />}
+            {cameraBlocked && <AppButton variant="secondary" title={t('rs.openSettings')} onPress={() => Linking.openSettings()} />}
             {receiptError && <ThemedText type="small" themeColor="errorText">{receiptError}</ThemedText>}
           </>
         )}
@@ -215,7 +216,7 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, onCancel, onSu
           <View style={{ flexDirection: 'row', gap: 10 }}>
             {onCancel && (
               <View style={{ flex: 1 }}>
-                <AppButton variant="secondary" title="Batal" onPress={onCancel} />
+                <AppButton variant="secondary" title={t('common.cancel')} onPress={onCancel} />
               </View>
             )}
             <View style={{ flex: 2 }}>

@@ -2,6 +2,8 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { useSyncExternalStore } from 'react';
 
+import { t } from '@/i18n';
+
 // App lock: when it is on, opening the app (or coming back after GRACE_MS) asks for the phone's fingerprint, face or
 // screen-lock PIN. It keeps a casual onlooker out of someone's receipts; it is not a defence against an attacker who
 // knows the phone's PIN, and it does not hide the app in the recent-apps list.
@@ -78,19 +80,19 @@ export async function appLockAvailable(): Promise<boolean> {
 // phone, and turning it off must not be possible for whoever picked up an unlocked phone. Returns a message on failure.
 export async function setAppLockEnabled(on: boolean): Promise<string | null> {
   if (on && !(await appLockAvailable())) {
-    return 'Atur kunci layar (PIN, pola, atau sidik jari) di pengaturan HP dulu, lalu coba lagi.';
+    return t('lock.setupFirst');
   }
-  const r = await authenticate(on ? 'Konfirmasi untuk mengaktifkan kunci aplikasi' : 'Konfirmasi untuk mematikan kunci aplikasi');
+  const r = await authenticate(on ? t('lock.confirmOn') : t('lock.confirmOff'));
   if (!r.ok) {
     return r.error === 'user_cancel' || r.error === 'system_cancel' || r.error === 'app_cancel'
       ? null // the person changed their mind: nothing to report
-      : 'Tidak dapat memastikan identitas Anda, jadi pengaturan tidak diubah.';
+      : t('lock.cannotVerify');
   }
   try {
     if (on) await SecureStore.setItemAsync(KEY, '1');
     else await SecureStore.deleteItemAsync(KEY);
   } catch {
-    return 'Pengaturan tidak dapat disimpan.';
+    return t('lock.cannotSave');
   }
   set({ enabled: on, locked: false });
   return null;
@@ -98,7 +100,7 @@ export async function setAppLockEnabled(on: boolean): Promise<string | null> {
 
 // Asks for the fingerprint, face or PIN. True when the app was unlocked.
 export async function unlockApp(): Promise<{ ok: boolean; error?: string }> {
-  const r = await authenticate('Buka ReturnIt');
+  const r = await authenticate(t('lock.openPrompt'));
   if (r.ok) set({ locked: false });
   return r;
 }

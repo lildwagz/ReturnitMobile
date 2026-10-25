@@ -1,0 +1,121 @@
+export const reminders = {
+  'rem.channel.push': { id: 'Notifikasi HP', en: 'Phone notification', ar: 'إشعار على الهاتف' },
+  'rem.channel.email': { id: 'E-mail', en: 'E-mail', ar: 'البريد الإلكتروني' },
+  'rem.channel.in_app': { id: 'Hanya di aplikasi', en: 'In the app only', ar: 'داخل التطبيق فقط' },
+  'rem.listSep': { id: ', ', en: ', ', ar: '، ' },
+
+  'rem.sum.off': {
+    id: 'Pengingat dimatikan. Tidak ada pengingat yang akan dikirim.',
+    en: 'Reminders are off. No reminders will be sent.',
+    ar: 'التذكيرات متوقفة. لن يتم إرسال أي تذكير.',
+  },
+  'rem.sum.noDays': {
+    id: 'Pilih minimal satu hari agar pengingat dikirim.',
+    en: 'Choose at least one day so reminders are sent.',
+    ar: 'اختر يومًا واحدًا على الأقل ليتم إرسال التذكيرات.',
+  },
+  'rem.sum.viaPush': {
+    id: 'lewat notifikasi HP dan di Riwayat pengingat',
+    en: 'by phone notification and in the reminder history',
+    ar: 'عبر إشعار على الهاتف وفي سجل التذكيرات',
+  },
+  'rem.sum.viaEmail': {
+    id: 'lewat e-mail dan di Riwayat pengingat',
+    en: 'by e-mail and in the reminder history',
+    ar: 'عبر البريد الإلكتروني وفي سجل التذكيرات',
+  },
+  'rem.sum.viaApp': { id: 'hanya di Riwayat pengingat', en: 'only in the reminder history', ar: 'في سجل التذكيرات فقط' },
+  'rem.sum.quiet': {
+    id: ' Pengingat yang jatuh pada jam tenang ({start}–{end}) dikirim setelah jam tenang selesai.',
+    en: ' Reminders that fall in quiet hours ({start}–{end}) are sent after quiet hours end.',
+    ar: ' التذكيرات التي تقع في ساعات الهدوء ({start}–{end}) تُرسل بعد انتهائها.',
+  },
+  'rem.sum.main': {
+    id: 'Anda akan diingatkan {days} hari sebelum garansi berakhir, pukul 09.00 {zone}, {how}.{quiet}',
+    en: 'You will be reminded {days} days before the warranty ends, at 09:00 {zone}, {how}.{quiet}',
+    ar: 'سنذكّرك قبل {days} يومًا من انتهاء الضمان، الساعة 09:00 {zone}، {how}.{quiet}',
+  },
+  'rem.zoneWib': { id: 'WIB', en: 'WIB', ar: 'WIB' },
+
+  'rem.day30': { id: 'Pengingat awal untuk memeriksa syarat garansi.', en: 'An early reminder to check the warranty terms.', ar: 'تذكير مبكر لمراجعة شروط الضمان.' },
+  'rem.day14': { id: 'Pengingat lanjutan.', en: 'A follow-up reminder.', ar: 'تذكير متابعة.' },
+  'rem.day7': {
+    id: 'Pengingat lanjutan sebelum masa garansi berakhir.',
+    en: 'A follow-up reminder before the warranty ends.',
+    ar: 'تذكير متابعة قبل انتهاء الضمان.',
+  },
+  'rem.day3': { id: 'Pengingat mendekati akhir garansi.', en: 'A reminder as the warranty nears its end.', ar: 'تذكير مع اقتراب نهاية الضمان.' },
+  'rem.day1': {
+    id: 'Pengingat terakhir sehari sebelum garansi berakhir.',
+    en: 'The last reminder, a day before the warranty ends.',
+    ar: 'التذكير الأخير، قبل يوم من انتهاء الضمان.',
+  },
+
+  'rem.err.noDay': {
+    id: 'Pilih minimal satu hari, atau matikan pengingat.',
+    en: 'Choose at least one day, or turn reminders off.',
+    ar: 'اختر يومًا واحدًا على الأقل أو أوقف التذكيرات.',
+  },
+  'rem.err.quiet': {
+    id: 'Jam tenang harus berformat JJ:MM, contoh 22:00.',
+    en: 'Quiet hours must be in HH:MM format, for example 22:00.',
+    ar: 'يجب أن تكون ساعات الهدوء بصيغة HH:MM، مثل 22:00.',
+  },
+  'rem.saved': { id: 'Pengaturan tersimpan.', en: 'Settings saved.', ar: 'تم حفظ الإعدادات.' },
+
+  'rem.snoozed': { id: 'Diingatkan lagi {date} pukul {time}.', en: 'You will be reminded again on {date} at {time}.', ar: 'سنذكّرك مرة أخرى في {date} الساعة {time}.' },
+  'rem.snoozeNotPossible': {
+    id: 'Pengingat ini tidak bisa ditunda lagi (tanggalnya terlalu dekat atau sudah berubah).',
+    en: 'This reminder cannot be postponed again (the date is too close or has changed).',
+    ar: 'لا يمكن تأجيل هذا التذكير مرة أخرى (التاريخ قريب جدًا أو تغيّر).',
+  },
+
+  'rem.title': { id: 'Pengingat Garansi', en: 'Warranty reminders', ar: 'تذكيرات الضمان' },
+  'rem.subtitle': { id: 'Atur kapan ReturnIt mengingatkan Anda.', en: 'Choose when ReturnIt reminds you.', ar: 'اختر متى يذكّرك ReturnIt.' },
+  'rem.pushOff': {
+    id: 'Notifikasi HP dimatikan, jadi pengingat hanya muncul di Riwayat pengingat di bawah dan tidak dialihkan ke e-mail.',
+    en: 'Phone notifications are off, so reminders only appear in the reminder history below and are not sent by e-mail instead.',
+    ar: 'إشعارات الهاتف متوقفة، لذلك تظهر التذكيرات في سجل التذكيرات أدناه فقط ولا تُرسل بالبريد الإلكتروني بدلًا منها.',
+  },
+  'rem.allowPush': { id: 'Izinkan notifikasi', en: 'Allow notifications', ar: 'السماح بالإشعارات' },
+  'rem.enabledTitle': { id: 'Pengingat garansi', en: 'Warranty reminders', ar: 'تذكيرات الضمان' },
+  'rem.enabledHelp': {
+    id: 'Aktifkan pengingat untuk item dengan tanggal akhir yang diketahui. Dikirim pukul 09:00.',
+    en: 'Turn on reminders for items with a known end date. Sent at 09:00.',
+    ar: 'فعّل التذكيرات للمنتجات ذات تاريخ الانتهاء المعروف. تُرسل الساعة 09:00.',
+  },
+  'rem.alsoVia': { id: 'Kirim juga lewat', en: 'Also send by', ar: 'أرسل أيضًا عبر' },
+  'rem.alsoViaHelp': {
+    id: 'Pengingat selalu muncul di Riwayat pengingat di bawah. Pilihan ini menambah satu pesan: notifikasi di HP, e-mail ke akun Anda, atau tidak ada. Hanya satu yang bisa dipilih.',
+    en: 'Reminders always appear in the reminder history below. This choice adds one message: a phone notification, an e-mail to your account, or nothing. Only one can be chosen.',
+    ar: 'تظهر التذكيرات دائمًا في سجل التذكيرات أدناه. يضيف هذا الاختيار رسالة واحدة: إشعارًا على الهاتف أو بريدًا إلى حسابك أو لا شيء. يمكن اختيار واحد فقط.',
+  },
+  'rem.quiet': { id: 'Jam tenang', en: 'Quiet hours', ar: 'ساعات الهدوء' },
+  'rem.from': { id: 'Mulai', en: 'From', ar: 'من' },
+  'rem.to': { id: 'Selesai', en: 'To', ar: 'إلى' },
+  'rem.quietHelp': {
+    id: 'Pengingat yang jatuh pada jam tenang dikirim setelah jam tenang berakhir.',
+    en: 'Reminders that fall in quiet hours are sent after quiet hours end.',
+    ar: 'التذكيرات التي تقع في ساعات الهدوء تُرسل بعد انتهائها.',
+  },
+  'rem.summaryTitle': { id: 'Ringkasan (berlaku setelah disimpan)', en: 'Summary (applies once saved)', ar: 'ملخص (يسري بعد الحفظ)' },
+  'rem.save': { id: 'Simpan pengaturan', en: 'Save settings', ar: 'حفظ الإعدادات' },
+  'rem.attentionTitle': { id: 'Garansi yang perlu diperhatikan', en: 'Warranties that need attention', ar: 'ضمانات تحتاج إلى انتباه' },
+  'rem.attentionEmpty': { id: 'Belum ada garansi mendekati akhir', en: 'No warranties are close to ending', ar: 'لا توجد ضمانات قريبة من الانتهاء' },
+  'rem.attentionEmptyHelp': {
+    id: 'Item yang perlu diperhatikan akan tampil di sini.',
+    en: 'Items that need attention will appear here.',
+    ar: 'ستظهر هنا المنتجات التي تحتاج إلى انتباه.',
+  },
+  'rem.history': { id: 'Riwayat pengingat', en: 'Reminder history', ar: 'سجل التذكيرات' },
+  'rem.unreadOnly': { id: 'Hanya yang belum dibaca', en: 'Unread only', ar: 'غير المقروءة فقط' },
+  'rem.retry': { id: 'Coba lagi', en: 'Try again', ar: 'حاول مرة أخرى' },
+  'rem.emptyUnread': { id: 'Tidak ada pengingat yang belum dibaca', en: 'No unread reminders', ar: 'لا توجد تذكيرات غير مقروءة' },
+  'rem.empty': { id: 'Belum ada pengingat', en: 'No reminders yet', ar: 'لا توجد تذكيرات بعد' },
+  'rem.emptyHelp': {
+    id: 'Pengingat garansi akan tampil di sini saat waktunya tiba.',
+    en: 'Warranty reminders will appear here when their time comes.',
+    ar: 'ستظهر تذكيرات الضمان هنا عندما يحين موعدها.',
+  },
+  'rem.snooze': { id: 'Ingatkan lagi', en: 'Remind me again', ar: 'ذكّرني مرة أخرى' },
+} as const;

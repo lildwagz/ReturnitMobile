@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/app-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { t } from '@/i18n';
 import { APP_VERSION, useAppGate } from '@/lib/app-gate';
 import { checkAppConfig } from '@/lib/app-config';
 
@@ -30,7 +31,7 @@ export function UpdateGate() {
     try {
       await Linking.openURL(gate.downloadUrl);
     } catch {
-      setOpenError('Tidak dapat membuka halaman unduhan. Salin alamatnya: ' + gate.downloadUrl);
+      setOpenError(t('gate.openFailed', { url: gate.downloadUrl }));
     }
   }
 
@@ -45,24 +46,24 @@ export function UpdateGate() {
             accessibilityLabel="ReturnIt"
           />
           <ThemedText type="title" style={{ textAlign: 'center' }}>
-            {maintenance ? 'Sedang dalam perbaikan' : 'Perbarui aplikasi'}
+            {maintenance ? t('gate.maintenanceTitle') : t('gate.updateTitle')}
           </ThemedText>
           <ThemedText style={{ textAlign: 'center' }}>
             {gate.message ||
               (maintenance
-                ? 'ReturnIt sedang dalam perbaikan. Coba lagi beberapa saat lagi.'
-                : 'Versi aplikasi ini sudah tidak didukung. Perbarui ke versi terbaru untuk melanjutkan.')}
+                ? t('gate.maintenanceBody')
+                : t('gate.updateBody'))}
           </ThemedText>
           {!maintenance && (
             <ThemedText type="small" themeColor="textSecondary" style={{ textAlign: 'center' }}>
-              {'Versi Anda: ' + APP_VERSION + (gate.minVersion ? ' · minimum: ' + gate.minVersion : '')}
+              {t('gate.version', { version: APP_VERSION }) + (gate.minVersion ? t('gate.minimum', { version: gate.minVersion }) : '')}
             </ThemedText>
           )}
           <View style={{ gap: 10 }}>
-            {!maintenance && gate.downloadUrl && <AppButton title="Perbarui sekarang" onPress={openDownload} />}
+            {!maintenance && gate.downloadUrl && <AppButton title={t('gate.updateNow')} onPress={openDownload} />}
             <AppButton
               variant={maintenance || !gate.downloadUrl ? 'primary' : 'secondary'}
-              title={checking ? 'Memeriksa…' : maintenance ? 'Coba lagi' : 'Saya sudah memperbarui'}
+              title={checking ? t('lock.checking') : maintenance ? t('gate.retry') : t('gate.updated')}
               onPress={recheck}
               disabled={checking}
             />

@@ -2,8 +2,9 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
+import { t } from '@/i18n';
 import { apiFetch } from '@/lib/auth';
-import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
+import { connectionError, errorMessage } from '@/lib/purchase';
 
 export const MAX_BYTES = 10 * 1024 * 1024;
 export const ALLOWED = ['application/pdf', 'image/jpeg', 'image/png'];
@@ -15,10 +16,10 @@ export function formatSize(bytes: number) {
 }
 
 export async function uploadError(res: Response): Promise<string> {
-  if (res.status === 413) return 'Ukuran file melebihi 10 MB.';
-  if (res.status === 415) return 'Jenis file tidak didukung. Gunakan PDF, JPEG atau PNG.';
-  if (res.status === 422) return 'File ditolak karena terdeteksi berbahaya.';
-  if (res.status === 503) return 'Pemindai keamanan sedang tidak tersedia. Coba lagi nanti.';
+  if (res.status === 413) return t('receipt.tooBig');
+  if (res.status === 415) return t('receipt.badType');
+  if (res.status === 422) return t('receipt.infected');
+  if (res.status === 503) return t('receipt.scannerDown');
   return errorMessage(res);
 }
 
@@ -31,14 +32,14 @@ export async function pickReceipt(): Promise<PickedReceipt> {
   try {
     picked = await DocumentPicker.getDocumentAsync({ type: ALLOWED, copyToCacheDirectory: true });
   } catch {
-    return { error: 'Tidak dapat membuka pemilih file.' };
+    return { error: t('receipt.pickerFailed') };
   }
   if (picked.canceled) return {};
   const file = picked.assets[0];
   if (file.mimeType && !ALLOWED.includes(file.mimeType)) {
-    return { error: 'Jenis file tidak didukung. Gunakan PDF, JPEG atau PNG.' };
+    return { error: t('receipt.badType') };
   }
-  if (file.size && file.size > MAX_BYTES) return { error: 'Ukuran file melebihi 10 MB.' };
+  if (file.size && file.size > MAX_BYTES) return { error: t('receipt.tooBig') };
   return { uri: file.uri, name: file.name };
 }
 
@@ -47,21 +48,21 @@ export async function captureReceipt(): Promise<PickedReceipt> {
   try {
     perm = await ImagePicker.requestCameraPermissionsAsync();
   } catch {
-    return { error: 'Tidak dapat meminta izin kamera.' };
+    return { error: t('receipt.cameraPermFailed') };
   }
   if (!perm.granted) {
-    return { error: 'Izin kamera diperlukan untuk mengambil foto struk.', cameraBlocked: !perm.canAskAgain };
+    return { error: t('receipt.cameraNeeded'), cameraBlocked: !perm.canAskAgain };
   }
   let shot;
   try {
     shot = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
   } catch {
-    return { error: 'Tidak dapat membuka kamera.' };
+    return { error: t('receipt.cameraFailed') };
   }
   if (shot.canceled) return {};
   const photo = shot.assets[0];
-  if (photo.fileSize && photo.fileSize > MAX_BYTES) return { error: 'Ukuran file melebihi 10 MB.' };
-  return { uri: photo.uri, name: photo.fileName ?? 'foto-struk.jpg' };
+  if (photo.fileSize && photo.fileSize > MAX_BYTES) return { error: t('receipt.tooBig') };
+  return { uri: photo.uri, name: photo.fileName ?? t('receipt.photoName') };
 }
 
 // Returns null when the receipt was stored, or a message for the user.
@@ -72,6 +73,6 @@ export async function uploadReceipt(purchaseId: string, uri: string): Promise<st
     const res = await apiFetch('/purchases/' + purchaseId + '/receipt', { method: 'POST', body: form });
     return res.status === 201 ? null : await uploadError(res);
   } catch {
-    return CONNECTION_ERROR;
+    return connectionError();
   }
 }

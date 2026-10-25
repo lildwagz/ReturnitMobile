@@ -4,6 +4,11 @@ import {
   PlusJakartaSans_700Bold,
   useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import {
+  NotoSansArabic_400Regular,
+  NotoSansArabic_500Medium,
+  NotoSansArabic_700Bold,
+} from '@expo-google-fonts/noto-sans-arabic';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -14,6 +19,7 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { LockScreen } from '@/components/lock-screen';
 import { ToastHost } from '@/components/toast-host';
 import { UpdateGate } from '@/components/update-gate';
+import { loadLanguage, t, useLanguage } from '@/i18n';
 import { useAppGate } from '@/lib/app-gate';
 import { checkAppConfig } from '@/lib/app-config';
 import { loadAppLock, lockAfterAbsence, useAppLock } from '@/lib/app-lock';
@@ -27,6 +33,12 @@ export default function RootLayout() {
   const signedIn = useSignedIn();
   const gate = useAppGate();
   const lock = useAppLock();
+  const { ready: languageReady, language } = useLanguage();
+
+  // The saved language (and the writing direction that goes with it) is read once, before anything is drawn.
+  useEffect(() => {
+    loadLanguage();
+  }, []);
 
   // App lock: read the saved setting once, and lock again when the app was away for longer than the grace time.
   useEffect(() => {
@@ -56,14 +68,17 @@ export default function RootLayout() {
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     PlusJakartaSans_700Bold,
+    NotoSansArabic_400Regular,
+    NotoSansArabic_500Medium,
+    NotoSansArabic_700Bold,
   });
   // The native splash screen stays up until the fonts are ready; a font error falls back to the system font.
-  if (!fontsLoaded && !fontError) return null;
+  if ((!fontsLoaded && !fontError) || !languageReady) return null;
 
   // The server said this version must be updated (or the service is in maintenance): nothing else is shown.
   if (gate.status === 'update_required' || gate.status === 'maintenance') {
     return (
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider key={language} value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AnimatedSplashOverlay />
         <UpdateGate />
       </ThemeProvider>
@@ -72,7 +87,8 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    {/* A new language remounts everything below, so every text is drawn again in it. */}
+    <ThemeProvider key={language} value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
       {/* The tab bar and the purchase screens only exist after login; before it only the login screen does.
           Logging out flips the guard and the router returns to the login screen by itself. */}
@@ -91,7 +107,7 @@ export default function RootLayout() {
         <Stack.Protected guard={signedIn === true}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="purchase" />
-          <Stack.Screen name="account" options={{ headerShown: true, title: 'Akun' }} />
+          <Stack.Screen name="account" options={{ headerShown: true, title: t('set.account') }} />
         </Stack.Protected>
       </Stack>
       </View>

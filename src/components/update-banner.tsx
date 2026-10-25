@@ -3,6 +3,7 @@ import { Linking, View } from 'react-native';
 import { AppButton } from '@/components/app-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { t } from '@/i18n';
 import { dismissUpdateInvite, isInviteDismissed, useAppGate } from '@/lib/app-gate';
 
 // A version newer than this one exists. It can be closed (once per version, until the app is closed); the lock
@@ -13,19 +14,19 @@ export function UpdateBanner() {
   return (
     <ThemedView type="backgroundElement" style={{ borderRadius: 16, padding: 14, gap: 10 }}>
       <ThemedText style={{ fontWeight: 700 }}>
-        {'Versi ' + (gate.latestVersion ?? 'terbaru') + ' tersedia'}
+        {t('update.available', { version: gate.latestVersion ?? t('update.newest') })}
       </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        {gate.message || 'Perbarui untuk mendapatkan perbaikan dan fitur terbaru.'}
+        {gate.message || t('update.defaultMessage')}
       </ThemedText>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         {gate.downloadUrl && (
           <View style={{ flex: 1 }}>
-            <AppButton small title="Perbarui" onPress={() => Linking.openURL(gate.downloadUrl!).catch(() => {})} />
+            <AppButton small title={t('update.update')} onPress={() => Linking.openURL(gate.downloadUrl!).catch(() => {})} />
           </View>
         )}
         <View style={{ flex: 1 }}>
-          <AppButton small variant="secondary" title="Nanti" onPress={() => dismissUpdateInvite(gate.latestVersion)} />
+          <AppButton small variant="secondary" title={t('update.later')} onPress={() => dismissUpdateInvite(gate.latestVersion)} />
         </View>
       </View>
     </ThemedView>

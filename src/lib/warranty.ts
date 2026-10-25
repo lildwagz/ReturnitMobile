@@ -1,3 +1,5 @@
+import { currentLanguage, t, type Key } from '@/i18n';
+
 export type WarrantyStatus = 'active' | 'expiring' | 'expired' | 'unknown';
 
 const EXPIRING_DAYS = 30;
@@ -61,24 +63,21 @@ export function warrantyStatus(endDate: string | null | undefined, today = today
   return 'active';
 }
 
-export const STATUS_LABEL: Record<WarrantyStatus, string> = {
-  active: 'Aktif',
-  expiring: 'Segera Berakhir',
-  expired: 'Kedaluwarsa',
-  unknown: 'Tidak Diketahui',
-};
+export function statusLabel(status: WarrantyStatus): string {
+  return t(('status.' + status) as Key);
+}
 
 export function formatIDR(price: number | null | undefined, currency = 'IDR'): string {
   if (price === null || price === undefined) return '-';
-  const digits = Math.round(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const sep = currentLanguage() === 'id' ? '.' : ',';
+  const digits = Math.round(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, sep);
   return (currency === 'IDR' ? 'Rp' : currency + ' ') + digits;
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-
-// '2025-10-15' -> '15 Okt 2025'. Plain-date math only, so no time zone can shift the day.
+// '2025-10-15' -> '15 Okt 2025' (Indonesian), '15 Oct 2025' (English), '15 أكتوبر 2025' (Arabic).
+// Plain-date math only, so no time zone can shift the day.
 export function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return 'Tidak diketahui';
+  if (!dateStr) return t('common.unknown');
   const { y, m, d } = parseDate(dateStr);
-  return d + ' ' + MONTHS[m - 1] + ' ' + y;
+  return d + ' ' + t(('month.' + m) as Key) + ' ' + y;
 }
