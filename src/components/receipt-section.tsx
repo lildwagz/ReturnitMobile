@@ -3,6 +3,7 @@ import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Button, Image, Linking, View } from 'react-native';
+import Pdf from 'react-native-pdf';
 
 import { ThemedText } from '@/components/themed-text';
 import { apiFetch } from '@/lib/auth';
@@ -37,8 +38,11 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewFailed, setPreviewFailed] = useState(false);
   const [cameraBlocked, setCameraBlocked] = useState(false);
+  const [pdfPage, setPdfPage] = useState(1);
+  const [pdfPages, setPdfPages] = useState(0);  
 
   const isImage = !!receipt && receipt.contentType.startsWith('image/');
+  const isPdf = !!receipt && receipt.contentType === 'application/pdf';
 
   // Gets a fresh short-lived link. Kept in memory only, never stored or logged.
   const fetchLink = useCallback(async (): Promise<string | null> => {
@@ -64,8 +68,8 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
   // Images appear automatically when the screen opens or the receipt changes.
   useEffect(() => {
     setPreviewUrl(null);
-    if (isImage) loadPreview();
-  }, [receipt, isImage, loadPreview]);
+    if (isImage || isPdf) loadPreview();
+  }, [receipt, isImage, isPdf, loadPreview]);
 
   async function openPdf() {
     setBusy(true);
@@ -198,7 +202,34 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
           )}
           {isImage && message && !previewUrl && <Button title="Coba lagi" onPress={loadPreview} />}
 
-          {!isImage && <Button title="Buka PDF" onPress={openPdf} disabled={busy} />}
+          {isPdf && previewUrl && !previewFailed && (
+            <View style={{ gap: 6 }}>
+              <Pdf
+                source={{ uri: previewUrl, cache: false }}
+                horizontal
+                enablePaging
+                trustAllCerts={false}
+                style={{ width: '100%', height: 420, backgroundColor: '#8882' }}
+                onLoadComplete={(pages) => setPdfPages(pages)}
+                onPageChanged={(page) => setPdfPage(page)}
+                onError={() => setPreviewFailed(true)}
+              />
+              {pdfPages > 0 && (
+                <ThemedText type="small" style={{ textAlign: 'center' }}>
+                  {'Halaman ' + pdfPage + ' dari ' + pdfPages}
+                </ThemedText>
+              )}
+            </View>
+          )}
+          {isPdf && !previewUrl && !message && <ActivityIndicator />}
+          {isPdf && previewFailed && (
+            <View style={{ gap: 8 }}>
+              <ThemedText style={{ color: '#C62828' }}>Pratinjau PDF gagal dimuat.</ThemedText>
+              <Button title="Coba lagi" onPress={loadPreview} />
+              <Button title="Unduh PDF (cadangan)" onPress={openPdf} disabled={busy} />
+            </View>
+          )}
+          {isPdf && message && !previewUrl && <Button title="Coba lagi" onPress={loadPreview} />}
           <Button title="Ganti struk" onPress={pickAndUpload} disabled={busy} />
           <Button title="Ambil foto baru" onPress={takePhoto} disabled={busy} />
           <Button title="Hapus struk" color="#C62828" onPress={confirmRemove} disabled={busy} />
