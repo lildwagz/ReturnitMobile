@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Button, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { API, apiFetch, login, logout } from '@/lib/auth';
 import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
 import { useSignedIn } from '@/lib/use-signed-in';
+import { AppButton } from '@/components/app-button';
 
 type Account = {
   id: string;
@@ -117,8 +118,8 @@ export default function SettingsScreen() {
             <>
               {loadError && (
                 <View style={{ gap: 8 }}>
-                  <ThemedText style={{ color: '#C62828' }}>{loadError}</ThemedText>
-                  <Button title="Coba lagi" onPress={loadAccount} />
+                  <ThemedText themeColor="errorText">{loadError}</ThemedText>
+                  <AppButton variant="secondary" title="Coba lagi" onPress={loadAccount} />
                 </View>
               )}
               {!account && !loadError && <ActivityIndicator />}
@@ -136,10 +137,10 @@ export default function SettingsScreen() {
                       new Date(account.deletionScheduledFor).toLocaleString() +
                       '. Anda masih bisa membatalkan sebelum waktu itu.'}
                   </ThemedText>
-                  {busy ? <ActivityIndicator /> : <Button title="Batalkan penghapusan" onPress={cancelDeletion} />}
+                  {busy ? <ActivityIndicator /> : <AppButton variant="secondary" title="Batalkan penghapusan" onPress={cancelDeletion} />}
                 </ThemedView>
               ) : (
-                account && (busy ? <ActivityIndicator /> : <Button title="Hapus akun" color="#C62828" onPress={confirmDeletion} />)
+                account && (busy ? <ActivityIndicator /> : <AppButton title="Hapus akun" variant="danger" onPress={confirmDeletion} />)
               )}
 
               {message && <ThemedText>{message}</ThemedText>}
@@ -171,7 +172,7 @@ export default function SettingsScreen() {
                   </ThemedText>
                 </ThemedView>
               )}
-              <Button title="Keluar" onPress={logout} />
+              <AppButton variant="secondary" title="Keluar" onPress={logout} />
             </>
           )}
         </ScrollView>

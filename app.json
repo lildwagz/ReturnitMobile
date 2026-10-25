@@ -26,13 +26,18 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      ["expo-image-picker", { "microphonePermission": false }],
+      [
+        "expo-image-picker",
+        {
+          "microphonePermission": false
+        }
+      ],
       "expo-notifications",
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#2563EB",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
@@ -51,8 +56,9 @@
         }
       },
       "eas": {
-        "projectId": "636bbbf3-668f-41a6-99c0-4ead652fd912"
+        "projectId": "e4eb61c1-3ff9-42ba-af70-6d1266f14286"
       }
-    }
+    },
+    "owner": "lildwagzs-team"
   }
 }

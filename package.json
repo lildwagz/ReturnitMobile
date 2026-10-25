@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/ui": "~58.0.20",
     "expo": "~58.0.14",
     "expo-auth-session": "~58.0.13",
@@ -37,6 +38,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~58.0.4",
     "typescript": "~6.0.3"
   },
   "scripts": {

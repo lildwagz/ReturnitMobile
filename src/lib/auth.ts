@@ -4,7 +4,9 @@ import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const USE_PROD = false; // set to true to use Azam's deployed server
+// Release builds (preview/production) talk to the deployed server; a dev build uses localhost
+// unless EXPO_PUBLIC_USE_PROD=true is set when starting Metro.
+const USE_PROD = process.env.EXPO_PUBLIC_USE_PROD === 'true' || !__DEV__;
 export const ISSUER = USE_PROD
   ? 'https://auth.20-255-48-53.sslip.io/realms/returnit'
   : 'http://localhost:8180/realms/returnit';

@@ -1,6 +1,6 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { Platform, StyleSheet, Text, type TextProps, type TextStyle } from 'react-native';
 
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { Brand, Fonts, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
@@ -8,10 +8,21 @@ export type ThemedTextProps = TextProps & {
   themeColor?: ThemeColor;
 };
 
+// Custom fonts have one file per weight, so the weight in the style picks the family
+// (the families are loaded in src/app/_layout.tsx). Until they load the system font is used.
+function family(weight: unknown): string {
+  const w = Number(weight ?? 400);
+  if (w >= 600) return 'PlusJakartaSans_700Bold';
+  if (w >= 500) return 'PlusJakartaSans_500Medium';
+  return 'PlusJakartaSans_400Regular';
+}
+
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
   const theme = useTheme();
+  const merged: TextStyle = StyleSheet.flatten([{ color: theme[themeColor ?? 'text'] }, styles[type], style]) ?? {};
+  const font = type === 'code' || merged.fontFamily ? undefined : { fontFamily: family(merged.fontWeight), fontWeight: undefined };
 
-  return <Text style={[{ color: theme[themeColor ?? 'text'] }, styles[type], style]} {...rest} />;
+  return <Text style={[merged, font]} {...rest} />;
 }
 
 const styles = StyleSheet.create({
@@ -31,14 +42,14 @@ const styles = StyleSheet.create({
     fontWeight: 500,
   },
   title: {
-    fontSize: 48,
-    fontWeight: 600,
-    lineHeight: 52,
+    fontSize: 28,
+    fontWeight: 700,
+    lineHeight: 34,
   },
   subtitle: {
-    fontSize: 32,
-    lineHeight: 44,
-    fontWeight: 600,
+    fontSize: 22,
+    lineHeight: 30,
+    fontWeight: 700,
   },
   link: {
     lineHeight: 30,
@@ -47,7 +58,7 @@ const styles = StyleSheet.create({
   linkPrimary: {
     lineHeight: 30,
     fontSize: 14,
-    color: '#3c87f7',
+    color: Brand.primary,
   },
   code: {
     fontFamily: Fonts.mono,

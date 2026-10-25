@@ -7,20 +7,69 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+/**
+ * ReturnIt design system (Docs/mobile/04-design/theme-tokens.md).
+ * Fill colors are the brand values; the *Text variants are darker so small text and white-on-color
+ * labels stay readable (WCAG AA) on light backgrounds.
+ */
+export const Brand = {
+  primary: '#2563EB',
+  primaryDark: '#1D4ED8',
+  primarySoft: '#DBEAFE',
+  navy: '#17324D',
+  secondary: '#64748B',
+  line: '#E2E8F0',
+  success: '#2CC35E',
+  successText: '#15803D',
+  warning: '#F59E0B',
+  warningText: '#B45309',
+  error: '#EF4444',
+  errorText: '#B91C1C',
+} as const;
+
+/** Tinted pill used for warranty status: soft background, dark text (same as the prototype). */
+export const StatusStyle = {
+  active: { bg: '#DCFCE7', fg: '#166534' },
+  expiring: { bg: '#FEF3C7', fg: '#92400E' },
+  expired: { bg: '#FEE2E2', fg: '#991B1B' },
+  unknown: { bg: '#F1F5F9', fg: '#475569' },
+} as const;
+
+export const StatusStyleDark = {
+  active: { bg: '#14532D', fg: '#BBF7D0' },
+  expiring: { bg: '#78350F', fg: '#FDE68A' },
+  expired: { bg: '#7F1D1D', fg: '#FECACA' },
+  unknown: { bg: '#1E293B', fg: '#CBD5E1' },
+} as const;
+
+/**
+ * Per-theme colors. The design only specifies the light palette; the dark one keeps the same hues on a
+ * navy base, with lighter text colors (primary, error, success, warning) so they stay readable on dark.
+ */
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: Brand.navy,
+    background: '#F8FAFC',
+    backgroundElement: '#EFF4FA',
+    backgroundSelected: Brand.line,
+    textSecondary: Brand.secondary,
+    border: Brand.line,
+    primary: Brand.primary,
+    errorText: Brand.errorText,
+    successText: Brand.successText,
+    warningText: Brand.warningText,
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#F1F5F9',
+    background: '#0B1220',
+    backgroundElement: '#131E33',
+    backgroundSelected: '#1E2B45',
+    textSecondary: '#94A3B8',
+    border: '#263552',
+    primary: '#60A5FA',
+    errorText: '#F87171',
+    successText: '#4ADE80',
+    warningText: '#FBBF24',
   },
 } as const;
 

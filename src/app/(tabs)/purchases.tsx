@@ -2,32 +2,26 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Button,
   FlatList,
   Pressable,
   ScrollView,
-  TextInput,
   View,
   useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { StatusBadge } from '@/components/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { Brand, Colors } from '@/constants/theme';
 import { apiFetch, login } from '@/lib/auth';
 import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
 import { useSignedIn } from '@/lib/use-signed-in';
-import { STATUS_LABEL, WarrantyStatus, daysLeft, formatIDR, warrantyStatus } from '@/lib/warranty';
+import { daysLeft, formatIDR, warrantyStatus } from '@/lib/warranty';
+import { AppButton } from '@/components/app-button';
+import { AppTextInput } from '@/components/app-text-input';
 
 const PAGE_SIZE = 20;
-
-const BADGE_COLOR: Record<WarrantyStatus, string> = {
-  active: '#1B8A3A',
-  expiring: '#C77700',
-  expired: '#C62828',
-  unknown: '#6B7280',
-};
 
 const FILTERS: { value: string; label: string }[] = [
   { value: '', label: 'Semua' },
@@ -36,23 +30,6 @@ const FILTERS: { value: string; label: string }[] = [
   { value: 'expired', label: 'Kedaluwarsa' },
   { value: 'none', label: 'Tidak Diketahui' },
 ];
-
-function Badge({ status }: { status: WarrantyStatus }) {
-  return (
-    <View
-      style={{
-        backgroundColor: BADGE_COLOR[status],
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
-        alignSelf: 'flex-start',
-      }}>
-      <ThemedText type="small" style={{ color: 'white' }}>
-        {STATUS_LABEL[status]}
-      </ThemedText>
-    </View>
-  );
-}
 
 function Row({ p, onPress }: { p: Purchase; onPress: () => void }) {
   const status = warrantyStatus(p.warrantyEndDate);
@@ -65,7 +42,7 @@ function Row({ p, onPress }: { p: Purchase; onPress: () => void }) {
         </ThemedText>
         <ThemedText type="small">{(p.storeName ? p.storeName + ' - ' : '') + p.purchaseDate}</ThemedText>
         <ThemedText type="small">{formatIDR(p.price, p.currency)}</ThemedText>
-        <Badge status={status} />
+        <StatusBadge status={status} />
         {left !== null && (
           <ThemedText type="small">
             {left >= 0 ? left + ' hari lagi' : 'Berakhir ' + -left + ' hari lalu'}
@@ -172,7 +149,7 @@ export default function PurchasesScreen() {
         <SafeAreaView style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
           <ThemedText type="title">ReturnIt</ThemedText>
           <ThemedText>Masuk untuk melihat catatan pembelian dan garansi Anda.</ThemedText>
-          <Button title="Masuk" onPress={async () => setLoginError(await login())} />
+          <AppButton title="Masuk" onPress={async () => setLoginError(await login())} />
           {loginError && <ThemedText type="small">{loginError}</ThemedText>}
         </SafeAreaView>
       </ThemedView>
@@ -186,11 +163,11 @@ export default function PurchasesScreen() {
       <SafeAreaView style={{ flex: 1, paddingHorizontal: 16, gap: 12 }}>
         <ThemedText type="title">Pembelian</ThemedText>
 
-        <TextInput
+        <AppTextInput
           value={searchText}
           onChangeText={setSearchText}
           placeholder="Cari nama produk atau toko"
-          placeholderTextColor="#888"
+         
           autoCorrect={false}
           maxLength={120}
           style={{
@@ -214,7 +191,7 @@ export default function PurchasesScreen() {
                     paddingHorizontal: 14,
                     paddingVertical: 8,
                     borderRadius: 16,
-                    backgroundColor: selected ? '#208AEF' : colors.backgroundElement,
+                    backgroundColor: selected ? Brand.primary : colors.backgroundElement,
                   }}>
                   <ThemedText type="small" style={{ color: selected ? 'white' : colors.text }}>
                     {f.label}
@@ -228,10 +205,10 @@ export default function PurchasesScreen() {
         <ThemedText type="small">{total} catatan</ThemedText>
         {error && (
           <View style={{ gap: 8 }}>
-            <ThemedText type="small" style={{ color: '#C62828' }}>
+            <ThemedText type="small" themeColor="errorText">
               {error}
             </ThemedText>
-            <Button title="Coba lagi" onPress={refresh} />
+            <AppButton variant="secondary" title="Coba lagi" onPress={refresh} />
           </View>
         )}
 
@@ -253,14 +230,14 @@ export default function PurchasesScreen() {
             ) : (
               <View style={{ gap: 12 }}>
                 <ThemedText>Belum ada pembelian.</ThemedText>
-                <Button title="Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
+                <AppButton title="Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
               </View>
             )
           }
           ListFooterComponent={
             filtering && items.length > 0 ? null : items.length > 0 ? (
               <View style={{ paddingTop: 16 }}>
-                <Button title="Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
+                <AppButton title="Tambah Pembelian" onPress={() => router.push('/purchase/new' as never)} />
               </View>
             ) : null
           }

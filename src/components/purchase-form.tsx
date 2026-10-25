@@ -1,22 +1,27 @@
 import { useState } from 'react';
-import { ActivityIndicator, Button, Pressable, ScrollView, TextInput, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, View, useColorScheme } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { Colors, Brand } from '@/constants/theme';
 import { DURATIONS, Purchase, initialDuration, isValidDate } from '@/lib/purchase';
 import { addMonths, todayLocal } from '@/lib/warranty';
+import { AppButton } from '@/components/app-button';
+import { AppTextInput } from '@/components/app-text-input';
+import { captureReceipt, pickReceipt } from '@/lib/receipt';
 
 type Props = {
   initial?: Purchase;
   submitLabel: string;
+  // Shows the optional receipt picker (the "add" screen). The file is uploaded by the caller after the purchase exists.
+  withReceipt?: boolean;
   // Returns an error message to show, or null when saved.
-  onSubmit: (body: Record<string, unknown>) => Promise<string | null>;
+  onSubmit: (body: Record<string, unknown>, receiptUri?: string) => Promise<string | null>;
 };
 
 type Duration = number | null | 'keep';
 
-export function PurchaseForm({ initial, submitLabel, onSubmit }: Props) {
+export function PurchaseForm({ initial, submitLabel, withReceipt, onSubmit }: Props) {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
@@ -31,6 +36,19 @@ export function PurchaseForm({ initial, submitLabel, onSubmit }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [receipt, setReceipt] = useState<{ uri: string; name?: string } | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [cameraBlocked, setCameraBlocked] = useState(false);
+
+  async function chooseReceipt(pick: typeof pickReceipt) {
+    setReceiptError(null);
+    setCameraBlocked(false);
+    const r = await pick();
+    if (r.error) {
+      setReceiptError(r.error);
+      setCameraBlocked(!!r.cameraBlocked);
+    } else if (r.uri) setReceipt({ uri: r.uri, name: r.name });
+  }
 
   const input = {
     color: colors.text,
@@ -72,7 +90,7 @@ export function PurchaseForm({ initial, submitLabel, onSubmit }: Props) {
     }
 
     setBusy(true);
-    const message = await onSubmit(body);
+    const message = await onSubmit(body, receipt?.uri);
     setBusy(false);
     if (message) setFormError(message);
   }
@@ -86,7 +104,7 @@ export function PurchaseForm({ initial, submitLabel, onSubmit }: Props) {
           paddingHorizontal: 14,
           paddingVertical: 8,
           borderRadius: 16,
-          backgroundColor: selected ? '#208AEF' : colors.backgroundElement,
+          backgroundColor: selected ? Brand.primary : colors.backgroundElement,
         }}>
         <ThemedText type="small" style={{ color: selected ? 'white' : colors.text }}>
           {label}
@@ -106,16 +124,16 @@ export function PurchaseForm({ initial, submitLabel, onSubmit }: Props) {
     <ThemedView style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
         <ThemedText type="small">Nama produk *</ThemedText>
-        <TextInput style={input} value={name} onChangeText={setName} placeholder="Contoh: Laptop" placeholderTextColor="#888" />
-        {errors.name && <ThemedText type="small" style={{ color: '#C62828' }}>{errors.name}</ThemedText>}
+        <AppTextInput style={input} value={name} onChangeText={setName} placeholder="Contoh: Laptop" />
+        {errors.name && <ThemedText type="small" themeColor="errorText">{errors.name}</ThemedText>}
 
         <ThemedText type="small">Toko</ThemedText>
-        <TextInput style={input} value={store} onChangeText={setStore} placeholder="Opsional" placeholderTextColor="#888" />
-        {errors.store && <ThemedText type="small" style={{ color: '#C62828' }}>{errors.store}</ThemedText>}
+        <AppTextInput style={input} value={store} onChangeText={setStore} placeholder="Opsional" />
+        {errors.store && <ThemedText type="small" themeColor="errorText">{errors.store}</ThemedText>}
 
         <ThemedText type="small">Tanggal pembelian * (TTTT-BB-HH)</ThemedText>
-        <TextInput style={input} value={date} onChangeText={setDate} placeholder="2026-10-19" placeholderTextColor="#888" autoCapitalize="none" />
-        {errors.date && <ThemedText type="small" style={{ color: '#C62828' }}>{errors.date}</ThemedText>}
+        <AppTextInput style={input} value={date} onChangeText={setDate} placeholder="2026-10-19" autoCapitalize="none" />
+        {errors.date && <ThemedText type="small" themeColor="errorText">{errors.date}</ThemedText>}
 
         <ThemedText type="small">Durasi garansi</ThemedText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -128,15 +146,34 @@ export function PurchaseForm({ initial, submitLabel, onSubmit }: Props) {
         {endPreview ? <ThemedText type="small">Garansi berakhir: {endPreview}</ThemedText> : null}
 
         <ThemedText type="small">Harga (Rp)</ThemedText>
-        <TextInput style={input} value={price} onChangeText={setPrice} placeholder="Opsional, contoh 1500000" placeholderTextColor="#888" keyboardType="numeric" />
-        {errors.price && <ThemedText type="small" style={{ color: '#C62828' }}>{errors.price}</ThemedText>}
+        <AppTextInput style={input} value={price} onChangeText={setPrice} placeholder="Opsional, contoh 1500000" keyboardType="numeric" />
+        {errors.price && <ThemedText type="small" themeColor="errorText">{errors.price}</ThemedText>}
 
         <ThemedText type="small">Catatan</ThemedText>
-        <TextInput style={[input, { minHeight: 80, textAlignVertical: 'top' }]} value={notes} onChangeText={setNotes} multiline placeholder="Opsional" placeholderTextColor="#888" />
-        {errors.notes && <ThemedText type="small" style={{ color: '#C62828' }}>{errors.notes}</ThemedText>}
+        <AppTextInput style={[input, { minHeight: 80, textAlignVertical: 'top' }]} value={notes} onChangeText={setNotes} multiline placeholder="Opsional" />
+        {errors.notes && <ThemedText type="small" themeColor="errorText">{errors.notes}</ThemedText>}
 
-        {formError && <ThemedText style={{ color: '#C62828' }}>{formError}</ThemedText>}
-        {busy ? <ActivityIndicator /> : <Button title={submitLabel} onPress={save} />}
+        {withReceipt && (
+          <>
+            <ThemedText type="small">Struk (opsional, PDF/JPEG/PNG maks. 10 MB)</ThemedText>
+            {receipt ? (
+              <View style={{ gap: 8 }}>
+                <ThemedText>{receipt.name ?? 'File dipilih'}</ThemedText>
+                <AppButton variant="secondary" title="Hapus pilihan" onPress={() => setReceipt(null)} disabled={busy} />
+              </View>
+            ) : (
+              <View style={{ gap: 8 }}>
+                <AppButton variant="secondary" title="Pilih file struk" onPress={() => chooseReceipt(pickReceipt)} disabled={busy} />
+                <AppButton variant="secondary" title="Ambil foto struk" onPress={() => chooseReceipt(captureReceipt)} disabled={busy} />
+              </View>
+            )}
+            {cameraBlocked && <AppButton variant="secondary" title="Buka pengaturan aplikasi" onPress={() => Linking.openSettings()} />}
+            {receiptError && <ThemedText type="small" themeColor="errorText">{receiptError}</ThemedText>}
+          </>
+        )}
+
+        {formError && <ThemedText themeColor="errorText">{formError}</ThemedText>}
+        {busy ? <ActivityIndicator /> : <AppButton title={submitLabel} onPress={save} />}
       </ScrollView>
     </ThemedView>
   );

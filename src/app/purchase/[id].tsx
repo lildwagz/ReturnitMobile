@@ -1,7 +1,7 @@
 import { ReceiptSection } from '@/components/receipt-section';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Button, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
 
 import { PurchaseForm } from '@/components/purchase-form';
 import { ThemedText } from '@/components/themed-text';
@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { apiFetch } from '@/lib/auth';
 import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
 import { STATUS_LABEL, daysLeft, formatIDR, warrantyStatus } from '@/lib/warranty';
+import { AppButton } from '@/components/app-button';
 
 function Line({ label, value }: { label: string; value: string }) {
   return (
@@ -94,7 +95,7 @@ export default function PurchaseDetail() {
     return (
       <ThemedView style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
         <ThemedText>{error ?? 'Catatan tidak ditemukan.'}</ThemedText>
-        <Button title="Coba lagi" onPress={load} />
+        <AppButton variant="secondary" title="Coba lagi" onPress={load} />
       </ThemedView>
     );
   }
@@ -125,8 +126,8 @@ export default function PurchaseDetail() {
         <Line label="Harga" value={formatIDR(p.price, p.currency)} />
         <Line label="Catatan" value={p.notes || '-'} />
         <ReceiptSection purchaseId={p.id} receipt={p.receipt} onChanged={load} />
-        <Button title="Edit" onPress={() => setEditing(true)} />
-        <Button title="Hapus" color="#C62828" onPress={confirmDelete} />
+        <AppButton variant="secondary" title="Edit" onPress={() => setEditing(true)} />
+        <AppButton title="Hapus" variant="danger" onPress={confirmDelete} />
       </ScrollView>
     </ThemedView>
   );

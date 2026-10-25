@@ -2,12 +2,10 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Button,
   FlatList,
   Linking,
   Pressable,
   Switch,
-  TextInput,
   View,
   useColorScheme,
 } from 'react-native';
@@ -15,11 +13,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { Colors, Brand } from '@/constants/theme';
 import { apiFetch } from '@/lib/auth';
 import { CONNECTION_ERROR, errorMessage } from '@/lib/purchase';
 import { PushPermission, getPushPermission, registerForPush } from '@/lib/push';
 import { useSignedIn } from '@/lib/use-signed-in';
+import { AppButton } from '@/components/app-button';
+import { AppTextInput } from '@/components/app-text-input';
 
 type Prefs = {
   enabled: boolean;
@@ -55,7 +55,7 @@ function Chip({ label, selected, onPress }: { label: string; selected: boolean; 
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 16,
-        backgroundColor: selected ? '#208AEF' : '#8884',
+        backgroundColor: selected ? Brand.primary : '#8884',
       }}>
       <ThemedText type="small" style={{ color: selected ? 'white' : undefined }}>
         {label}
@@ -223,7 +223,7 @@ export default function RemindersScreen() {
             tersimpan di daftar di bawah.
           </ThemedText>
           {perm.canAskAgain ? (
-            <Button
+            <AppButton
               title="Izinkan notifikasi"
               onPress={async () => {
                 await registerForPush();
@@ -231,12 +231,12 @@ export default function RemindersScreen() {
               }}
             />
           ) : (
-            <Button title="Buka pengaturan aplikasi" onPress={() => Linking.openSettings()} />
+            <AppButton variant="secondary" title="Buka pengaturan aplikasi" onPress={() => Linking.openSettings()} />
           )}
         </ThemedView>
       )}
 
-      {prefsError && <ThemedText style={{ color: '#C62828' }}>{prefsError}</ThemedText>}
+      {prefsError && <ThemedText themeColor="errorText">{prefsError}</ThemedText>}
       {prefs && (
         <>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -289,7 +289,7 @@ export default function RemindersScreen() {
             <>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <ThemedText type="small">Mulai</ThemedText>
-                <TextInput
+                <AppTextInput
                   style={timeInput}
                   value={prefs.quietHoursStart ?? ''}
                   onChangeText={(t) => {
@@ -297,11 +297,11 @@ export default function RemindersScreen() {
                     setPrefs({ ...prefs, quietHoursStart: t });
                   }}
                   placeholder="22:00"
-                  placeholderTextColor="#888"
+                 
                   maxLength={5}
                 />
                 <ThemedText type="small">Selesai</ThemedText>
-                <TextInput
+                <AppTextInput
                   style={timeInput}
                   value={prefs.quietHoursEnd ?? ''}
                   onChangeText={(t) => {
@@ -309,7 +309,7 @@ export default function RemindersScreen() {
                     setPrefs({ ...prefs, quietHoursEnd: t });
                   }}
                   placeholder="07:00"
-                  placeholderTextColor="#888"
+                 
                   maxLength={5}
                 />
               </View>
@@ -319,7 +319,7 @@ export default function RemindersScreen() {
             </>
           )}
 
-          {saving ? <ActivityIndicator /> : <Button title="Simpan pengaturan" onPress={save} />}
+          {saving ? <ActivityIndicator /> : <AppButton title="Simpan pengaturan" onPress={save} />}
           {saveMsg && <ThemedText type="small">{saveMsg}</ThemedText>}
         </>
       )}
@@ -331,8 +331,8 @@ export default function RemindersScreen() {
         <ThemedText type="small">Hanya yang belum dibaca</ThemedText>
         <Switch value={unreadOnly} onValueChange={setUnreadOnly} />
       </View>
-      {notesError && <ThemedText style={{ color: '#C62828' }}>{notesError}</ThemedText>}
-      {(prefsError || notesError) && <Button title="Coba lagi" onPress={loadAll} />}
+      {notesError && <ThemedText themeColor="errorText">{notesError}</ThemedText>}
+      {(prefsError || notesError) && <AppButton variant="secondary" title="Coba lagi" onPress={loadAll} />}
     </View>
   );
 
@@ -362,7 +362,7 @@ export default function RemindersScreen() {
                   borderRadius: 14,
                   gap: 4,
                   borderLeftWidth: item.read ? 0 : 4,
-                  borderLeftColor: '#208AEF',
+                  borderLeftColor: Brand.primary,
                 }}>
                 <ThemedText style={{ fontWeight: item.read ? '400' : '700' }}>{item.title}</ThemedText>
                 <ThemedText type="small">{item.body}</ThemedText>

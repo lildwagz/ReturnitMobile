@@ -1,29 +1,11 @@
-import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
-import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Button, Image, Linking, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { apiFetch } from '@/lib/auth';
 import { CONNECTION_ERROR, Purchase, errorMessage } from '@/lib/purchase';
-
-const MAX_BYTES = 10 * 1024 * 1024;
-const ALLOWED = ['application/pdf', 'image/jpeg', 'image/png'];
-
-function formatSize(bytes: number) {
-  return bytes >= 1024 * 1024
-    ? (bytes / 1024 / 1024).toFixed(1) + ' MB'
-    : Math.max(1, Math.round(bytes / 1024)) + ' KB';
-}
-
-async function uploadError(res: Response): Promise<string> {
-  if (res.status === 413) return 'Ukuran file melebihi 10 MB.';
-  if (res.status === 415) return 'Jenis file tidak didukung. Gunakan PDF, JPEG atau PNG.';
-  if (res.status === 422) return 'File ditolak karena terdeteksi berbahaya.';
-  if (res.status === 503) return 'Pemindai keamanan sedang tidak tersedia. Coba lagi nanti.';
-  return errorMessage(res);
-}
+import { AppButton } from '@/components/app-button';
+import { captureReceipt, formatSize, pickReceipt, uploadReceipt } from '@/lib/receipt';
 
 type Props = {
   purchaseId: string;
@@ -83,74 +65,24 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
 
   // Shared by the file picker and the camera.
   async function uploadUri(uri: string) {
-    const form = new FormData();
-    form.append('file', new File(uri));
     setBusy(true);
-    try {
-      const res = await apiFetch('/purchases/' + purchaseId + '/receipt', { method: 'POST', body: form });
-      if (res.status === 201) onChanged();
-      else setMessage(await uploadError(res));
-    } catch {
-      setMessage(CONNECTION_ERROR + ' Catatan tetap tersimpan, coba unggah lagi.');
-    } finally {
-      setBusy(false);
-    }
+    const error = await uploadReceipt(purchaseId, uri);
+    setBusy(false);
+    if (!error) onChanged();
+    else setMessage(error === CONNECTION_ERROR ? error + ' Catatan tetap tersimpan, coba unggah lagi.' : error);
   }
 
-  async function pickAndUpload() {
+  async function choose(pick: typeof pickReceipt) {
     setMessage(null);
     setCameraBlocked(false);
-    let picked;
-    try {
-      picked = await DocumentPicker.getDocumentAsync({ type: ALLOWED, copyToCacheDirectory: true });
-    } catch {
-      setMessage('Tidak dapat membuka pemilih file.');
-      return;
-    }
-    if (picked.canceled) return;
-    const file = picked.assets[0];
-
-    if (file.mimeType && !ALLOWED.includes(file.mimeType)) {
-      setMessage('Jenis file tidak didukung. Gunakan PDF, JPEG atau PNG.');
-      return;
-    }
-    if (file.size && file.size > MAX_BYTES) {
-      setMessage('Ukuran file melebihi 10 MB.');
-      return;
-    }
-    await uploadUri(file.uri);
+    const r = await pick();
+    if (r.error) {
+      setMessage(r.error);
+      setCameraBlocked(!!r.cameraBlocked);
+    } else if (r.uri) await uploadUri(r.uri);
   }
-
-  async function takePhoto() {
-    setMessage(null);
-    setCameraBlocked(false);
-    let perm;
-    try {
-      perm = await ImagePicker.requestCameraPermissionsAsync();
-    } catch {
-      setMessage('Tidak dapat meminta izin kamera.');
-      return;
-    }
-    if (!perm.granted) {
-      setCameraBlocked(!perm.canAskAgain);
-      setMessage('Izin kamera diperlukan untuk mengambil foto struk.');
-      return;
-    }
-    let shot;
-    try {
-      shot = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
-    } catch {
-      setMessage('Tidak dapat membuka kamera.');
-      return;
-    }
-    if (shot.canceled) return;
-    const photo = shot.assets[0];
-    if (photo.fileSize && photo.fileSize > MAX_BYTES) {
-      setMessage('Ukuran file melebihi 10 MB.');
-      return;
-    }
-    await uploadUri(photo.uri);
-  }
+  const pickAndUpload = () => choose(pickReceipt);
+  const takePhoto = () => choose(captureReceipt);
 
   function confirmRemove() {
     Alert.alert('Hapus struk?', 'File struk akan dihapus permanen.', [
@@ -192,27 +124,27 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
           {isImage && !previewUrl && !message && <ActivityIndicator />}
           {isImage && previewFailed && (
             <View style={{ gap: 8 }}>
-              <ThemedText style={{ color: '#C62828' }}>Pratinjau gagal dimuat.</ThemedText>
-              <Button title="Coba lagi" onPress={loadPreview} />
+              <ThemedText themeColor="errorText">Pratinjau gagal dimuat.</ThemedText>
+              <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />
             </View>
           )}
-          {isImage && message && !previewUrl && <Button title="Coba lagi" onPress={loadPreview} />}
+          {isImage && message && !previewUrl && <AppButton variant="secondary" title="Coba lagi" onPress={loadPreview} />}
 
-          {!isImage && <Button title="Buka PDF" onPress={openPdf} disabled={busy} />}
-          <Button title="Ganti struk" onPress={pickAndUpload} disabled={busy} />
-          <Button title="Ambil foto baru" onPress={takePhoto} disabled={busy} />
-          <Button title="Hapus struk" color="#C62828" onPress={confirmRemove} disabled={busy} />
+          {!isImage && <AppButton variant="secondary" title="Buka PDF" onPress={openPdf} disabled={busy} />}
+          <AppButton variant="secondary" title="Ganti struk" onPress={pickAndUpload} disabled={busy} />
+          <AppButton variant="secondary" title="Ambil foto baru" onPress={takePhoto} disabled={busy} />
+          <AppButton title="Hapus struk" variant="danger" onPress={confirmRemove} disabled={busy} />
         </>
       ) : (
         <>
           <ThemedText>Belum ada struk</ThemedText>
-          <Button title="Unggah struk" onPress={pickAndUpload} disabled={busy} />
-          <Button title="Ambil foto" onPress={takePhoto} disabled={busy} />
+          <AppButton title="Unggah struk" onPress={pickAndUpload} disabled={busy} />
+          <AppButton variant="secondary" title="Ambil foto" onPress={takePhoto} disabled={busy} />
         </>
       )}
-      {cameraBlocked && <Button title="Buka pengaturan aplikasi" onPress={() => Linking.openSettings()} />}
+      {cameraBlocked && <AppButton variant="secondary" title="Buka pengaturan aplikasi" onPress={() => Linking.openSettings()} />}
       {busy && <ActivityIndicator />}
-      {message && <ThemedText style={{ color: '#C62828' }}>{message}</ThemedText>}
+      {message && <ThemedText themeColor="errorText">{message}</ThemedText>}
     </View>
   );
 }

@@ -12,5 +12,8 @@ export type ThemedViewProps = ViewProps & {
 export function ThemedView({ style, lightColor, darkColor, type, ...otherProps }: ThemedViewProps) {
   const theme = useTheme();
 
-  return <View style={[{ backgroundColor: theme[type ?? 'background'] }, style]} {...otherProps} />;
+  // Cards (backgroundElement) get the prototype's thin border.
+  const card = type === 'backgroundElement' ? { borderWidth: 1, borderColor: theme.border } : null;
+
+  return <View style={[{ backgroundColor: theme[type ?? 'background'] }, card, style]} {...otherProps} />;
 }
