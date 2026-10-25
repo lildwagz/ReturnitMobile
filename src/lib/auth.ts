@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 
 import { currentLanguage, t as tr } from '@/i18n';
 import { APP_PLATFORM, APP_VERSION, noteGateFromResponse } from '@/lib/app-gate';
+import { clearLog, logEvent, loggedFetch } from '@/lib/log';
 import { queryClient } from '@/lib/query-client';
 import { clearReceiptCache } from '@/lib/receipt-cache';
 
@@ -66,7 +67,8 @@ async function refreshTokens(): Promise<string | null> {
       const t = await AuthSession.refreshAsync({ clientId: CLIENT_ID, refreshToken }, discovery);
       await saveTokens(t);
       return t.accessToken;
-    } catch {
+    } catch (e) {
+      logEvent('token_refresh_failed', { error: e instanceof Error ? e.message : String(e) });
       await clearTokens();
       queryClient.clear(); // the session is over: nothing of this user may stay in memory
       clearReceiptCache();
@@ -90,16 +92,18 @@ export async function getAccessToken(): Promise<string | null> {
 // Calls the API with the token. Retries once after a refresh if the server says 401.
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const send = (token: string) =>
-    fetch(API + path, {
-      ...init,
-      headers: {
-        ...(init.headers as Record<string, string>),
-        Authorization: 'Bearer ' + token,
-        // Lets the server refuse a version it no longer supports (426) or tell us about maintenance (503).
-        'X-App-Version': APP_VERSION,
-        'X-App-Platform': APP_PLATFORM,
-      },
-    });
+    loggedFetch(init.method ?? 'GET', path, init, () =>
+      fetch(API + path, {
+        ...init,
+        headers: {
+          ...(init.headers as Record<string, string>),
+          Authorization: 'Bearer ' + token,
+          // Lets the server refuse a version it no longer supports (426) or tell us about maintenance (503).
+          'X-App-Version': APP_VERSION,
+          'X-App-Platform': APP_PLATFORM,
+        },
+      }),
+    );
   const token = await getAccessToken();
   if (!token) throw new Error('Not logged in');
   let res = await send(token);
@@ -134,13 +138,17 @@ export async function login(fresh = false, register = false, provider?: 'google'
       : discovery;
     const result = await request.promptAsync(entry);
     // Closing the browser is not an error; anything else tells the user what the login server said.
-    if (result.type === 'cancel' || result.type === 'dismiss') return null;
+    if (result.type === 'cancel' || result.type === 'dismiss') {
+      logEvent('login_closed', { result: result.type });
+      return null;
+    }
     if (result.type === 'error') {
       // The browser finished an older login (for example a reset-password link opened later), so its answer does
       // not belong to this attempt.
       if (result.error?.code === 'state_mismatch' || /Cross-Site request/i.test(result.error?.message ?? '')) {
         return tr('auth.stateMismatch');
       }
+      logEvent('login_failed', { provider: provider ?? 'password', code: result.error?.code ?? result.params?.error });
       const why = result.params?.error_description || result.params?.error || result.error?.message;
       if (provider === 'google') {
         // An e-mail that already has an account made another way cannot be linked silently (a safety rule of the
@@ -160,9 +168,11 @@ export async function login(fresh = false, register = false, provider?: 'google'
       discovery,
     );
     await saveTokens(tokens);
+    logEvent('login_ok', { provider: provider ?? (register ? 'register' : 'password') });
     notify();
     return null;
   } catch (e) {
+    logEvent('login_error', { error: e instanceof Error ? e.message : String(e) });
     return tr('auth.error', { e: String(e) });
   } finally {
     loginInFlight = false;
@@ -188,8 +198,10 @@ export async function logout() {
   } catch {
     // Revoking is best effort; we still forget the tokens below.
   }
+  logEvent('logout');
   await clearTokens();
   queryClient.clear();
   clearReceiptCache();
+  clearLog(); // nothing of this session stays in memory
   notify();
 }
