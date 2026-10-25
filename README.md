@@ -34,21 +34,17 @@ On a real phone `localhost` is the phone itself, so use the deployed server when
 
 | Profile | Result |
 |---|---|
-|  | development build (dev client) |
-|  | small APK for current phones only (arm64): faster to build and about a third of the size |
-|  | APK with every CPU architecture (about 100 MB), for emulators and old phones |
-
-
-
-### Release build (APK)
+| `development` | development build (dev client) |
+| `preview-arm64` | small APK for current phones only (arm64): faster to build and about a third of the size |
+| `production` | APK with every CPU architecture (about 100 MB), for emulators and old phones |
 
 ```bash
-npx eas-cli@latest build --profile production --platform android
+npx eas-cli@latest build --profile preview-arm64 --platform android
 ```
 
 `google-services.json` (Firebase client config, needed for push notifications) is not in the repo. It is stored as the
-EAS file variable `GOOGLE_SERVICES_JSON` of the `production` environment (`app.config.js` reads it); for a local
-build put the file in the project root.
+EAS file variable `GOOGLE_SERVICES_JSON` of the `production` environment (`app.config.js` reads it, and the
+`preview-arm64` profile uses that environment too); for a local build put the file in the project root.
 
 ## Checks before a commit
 
