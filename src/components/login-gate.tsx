@@ -30,11 +30,6 @@ export function LoginGate() {
           title={t('login.google')}
           onPress={async () => setError(await login(false, false, 'google'))}
         />
-        <AppButton
-          variant="secondary"
-          title={t('login.register')}
-          onPress={async () => setError(await login(false, true))}
-        />
         <AppButton small variant="secondary" title={t('set.language')} onPress={() => setLangOpen(true)} />
         {error && (
           <ThemedText type="small" themeColor="errorText">

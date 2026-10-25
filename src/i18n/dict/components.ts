@@ -35,7 +35,6 @@ export const components = {
   },
   'login.signIn': { id: 'Masuk', en: 'Sign in', ar: 'تسجيل الدخول' },
   'login.google': { id: 'Lanjutkan dengan Google', en: 'Continue with Google', ar: 'المتابعة باستخدام Google' },
-  'login.register': { id: 'Daftar akun baru', en: 'Create a new account', ar: 'إنشاء حساب جديد' },
 
   // purchase row
   'row.open': { id: 'Buka detail {name}', en: 'Open details of {name}', ar: 'فتح تفاصيل {name}' },
