@@ -120,8 +120,9 @@ function AttentionHero({ hero, onOpen }: { hero: Hero; onOpen: (id: string) => v
   );
 }
 
-// Half-width number tile: one big number (the design's "one large number per tile"; long values
-// such as the covered-value sums fall back to the 20 pt heading size so they wrap, not shrink).
+// Half-width number tile: one big number (the design's "one large number per tile"). The number stays on one
+// line: short values (counts) are big, longer ones (dates) use the 20 pt size, and either shrinks a little
+// rather than wrapping when the screen is narrow.
 function StatTile({ label, value, tone }: { label: string; value: string; tone?: 'successText' | 'warningText' }) {
   const big = value.length <= 8;
   return (
@@ -130,11 +131,54 @@ function StatTile({ label, value, tone }: { label: string; value: string; tone?:
         type="title"
         themeColor={tone ?? 'text'}
         maxFontSizeMultiplier={1.2}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
         style={big ? { fontSize: TypeScale.big, lineHeight: 44 } : { fontSize: TypeScale.lg, lineHeight: 28 }}>
         {value}
       </ThemedText>
       <TileLabel>{label}</TileLabel>
     </Tile>
+  );
+}
+
+// "Rp450.000.000" -> the currency mark and the digits, so the mark can be small and the amount large.
+function splitAmount(text: string): { mark: string; digits: string } {
+  const m = text.match(/^(\D*)(\d.*)$/);
+  return m ? { mark: m[1].trim(), digits: m[2] } : { mark: '', digits: text };
+}
+
+// Full-width tile for the money still under warranty. A sum of hundreds of millions does not fit in a half tile,
+// so it gets the whole row: one line per currency, the amount large, the currency mark small, shrinking only
+// when a very large sum needs it (never wrapping). A screen reader reads the full amount.
+function ValueTile({ label, amounts }: { label: string; amounts: { amount: number; currency: string }[] }) {
+  const lines = amounts.map((a) => ({ key: a.currency, text: formatIDR(a.amount, a.currency) }));
+  return (
+    <View accessible accessibilityLabel={label + ': ' + lines.map((l) => l.text).join(', ')}>
+      <Tile>
+        <TileLabel>{label}</TileLabel>
+        {lines.map((l) => {
+          const { mark, digits } = splitAmount(l.text);
+          return (
+            <ThemedText
+              key={l.key}
+              type="title"
+              maxFontSizeMultiplier={1.2}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+              style={{ fontSize: TypeScale.title, lineHeight: 36 }}>
+              {mark ? (
+                <ThemedText themeColor="textSecondary" style={{ fontSize: TypeScale.base, fontWeight: 500 }}>
+                  {mark + ' '}
+                </ThemedText>
+              ) : null}
+              {digits}
+            </ThemedText>
+          );
+        })}
+      </Tile>
+    </View>
   );
 }
 
@@ -157,13 +201,6 @@ export default function HomeScreen() {
   if (active !== null) tileRows.push({ key: 'active', label: t('home.active'), value: String(active), tone: 'successText' });
   if (expiring !== null) tileRows.push({ key: 'expiring', label: t('home.expiring'), value: String(expiring), tone: 'warningText' });
   if (total !== null) tileRows.push({ key: 'total', label: t('home.total'), value: String(total) });
-  if (covered.length > 0) {
-    tileRows.push({
-      key: 'covered',
-      label: t('home.coveredValue'),
-      value: covered.map((a) => formatIDR(a.amount, a.currency)).join(' · '),
-    });
-  }
   // The return tile repeats the hero when the hero already is the return deadline, so it only
   // shows beside a warranty hero.
   if (summary?.nextReturn && hero && hero.kind !== 'return') {
@@ -206,6 +243,8 @@ export default function HomeScreen() {
           ) : (
             hero && <AttentionHero hero={hero} onOpen={(id) => router.push(('/purchase/' + id) as never)} />
           )}
+
+          {!bentoLoading && covered.length > 0 && <ValueTile label={t('home.coveredValue')} amounts={covered} />}
 
           {!bentoLoading && tileRows.length > 0 && (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
