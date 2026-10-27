@@ -85,4 +85,28 @@ export const pluralTexts = {
       other: ' · انتهى منذ {n} يوم',
     },
   },
+  minutesAgo: {
+    id: { other: '{n} menit lalu' },
+    en: { one: '{n} minute ago', other: '{n} minutes ago' },
+    ar: {
+      zero: 'أقل من دقيقة',
+      one: 'منذ دقيقة واحدة',
+      two: 'منذ دقيقتين',
+      few: 'منذ {n} دقائق',
+      many: 'منذ {n} دقيقة',
+      other: 'منذ {n} دقيقة',
+    },
+  },
+  hoursAgo: {
+    id: { other: '{n} jam lalu' },
+    en: { one: '{n} hour ago', other: '{n} hours ago' },
+    ar: {
+      zero: 'أقل من ساعة',
+      one: 'منذ ساعة واحدة',
+      two: 'منذ ساعتين',
+      few: 'منذ {n} ساعات',
+      many: 'منذ {n} ساعة',
+      other: 'منذ {n} ساعة',
+    },
+  },
 } satisfies Record<string, Texts>;

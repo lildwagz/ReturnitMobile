@@ -1,23 +1,25 @@
 import { ReceiptSection } from '@/components/receipt-section';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 
-import { PurchaseForm } from '@/components/purchase-form';
+import { BottomSheet } from '@/components/bottom-sheet';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Icon } from '@/components/icon';
 import { t, tn } from '@/i18n';
-import { apiFetch } from '@/lib/auth';
 import { usePurchase } from '@/lib/queries';
-import { forgetReceipt } from '@/lib/receipt-cache';
-import { invalidatePurchases, keys, queryClient } from '@/lib/query-client';
+import { deletePurchaseWithConfirm } from '@/lib/delete-purchase';
+import { invalidatePurchases } from '@/lib/query-client';
 import { showToast } from '@/lib/toast';
-import { connectionError, errorMessage, initialDuration } from '@/lib/purchase';
+import { initialDuration } from '@/lib/purchase';
 import { formatDate, formatIDR, warrantyStatus } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { StatusBadge } from '@/components/status-badge';
 import { ReturnBanner, WarrantyBanner } from '@/components/warranty-banner';
 import { addDateToCalendar } from '@/lib/calendar';
+import { useTheme } from '@/hooks/use-theme';
+import { Radius, Spacing } from '@/constants/theme';
 
 function Line({ label, value }: { label: string; value: string }) {
   return (
@@ -39,58 +41,66 @@ function Cell({ label, value }: { label: string; value: string }) {
   );
 }
 
+// The "..." header menu as a bottom sheet: opens editing (its own modal route) and delete
+// (still confirmed by the shared delete flow).
+function DetailMenuSheet({ visible, onClose, onEdit, onDelete }: { visible: boolean; onClose: () => void; onEdit: () => void; onDelete: () => void }) {
+  const theme = useTheme();
+  const rows: { icon: 'edit-3' | 'trash-2'; title: string; danger?: boolean; onPress: () => void }[] = [
+    { icon: 'edit-3', title: t('detail.edit'), onPress: onEdit },
+    { icon: 'trash-2', title: t('detail.delete'), danger: true, onPress: onDelete },
+  ];
+  return (
+    <BottomSheet visible={visible} onClose={onClose} title={t('detail.actions')}>
+      {rows.map((r) => (
+        <Pressable
+          key={r.icon}
+          accessibilityRole="button"
+          accessibilityLabel={r.title}
+          onPress={r.onPress}
+          android_ripple={{ color: r.danger ? theme.errorText + '1F' : theme.primary + '1F' }}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.three,
+            minHeight: 56,
+            padding: Spacing.three,
+            borderRadius: Radius.sm,
+            backgroundColor: theme.backgroundElement,
+            opacity: pressed ? 0.85 : 1,
+          })}>
+          <Icon name={r.icon} size={20} color={r.danger ? theme.errorText : theme.textSecondary} decorative />
+          <ThemedText style={{ fontWeight: '700', color: r.danger ? theme.errorText : theme.text }}>{r.title}</ThemedText>
+        </Pressable>
+      ))}
+    </BottomSheet>
+  );
+}
+
 export default function PurchaseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [editing, setEditing] = useState(false);
+  const theme = useTheme();
+  const [menuOpen, setMenuOpen] = useState(false);
   const query = usePurchase(id, true);
   const p = query.data ?? null;
   const loading = query.isLoading;
   const error = query.error ? query.error.message : null;
   const load = () => query.refetch();
 
-  async function saveEdit(body: Record<string, unknown>) {
-    try {
-      const res = await apiFetch('/purchases/' + id, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        queryClient.setQueryData(keys.purchase(String(id)), await res.json());
-        invalidatePurchases();
-        setEditing(false);
-        showToast(t('detail.updated'));
-        return null;
-      }
-      return await errorMessage(res);
-    } catch {
-      return connectionError();
-    }
+  function confirmDelete() {
+    setMenuOpen(false);
+    deletePurchaseWithConfirm(String(id), () => router.back());
   }
 
-  function confirmDelete() {
-    Alert.alert(t('detail.deleteTitle'), t('detail.deleteBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('detail.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const res = await apiFetch('/purchases/' + id, { method: 'DELETE' });
-            if (res.status === 204) {
-              forgetReceipt(String(id));
-              queryClient.removeQueries({ queryKey: keys.purchase(String(id)) });
-              invalidatePurchases();
-              showToast(t('detail.deleted'));
-              router.back();
-            } else Alert.alert(t('detail.deleteFailed'), await errorMessage(res));
-          } catch {
-            Alert.alert(t('detail.deleteFailed'), connectionError());
-          }
-        },
-      },
-    ]);
+  function openEdit() {
+    setMenuOpen(false);
+    router.push({ pathname: '/purchase/edit', params: { id } } as never);
+  }
+
+  async function addToCalendar(title: string, date: string, notes: string) {
+    const r = await addDateToCalendar({ title, date, notes });
+    if (r === 'saved') showToast(t('detail.calendarAdded'));
+    else if (r === 'error') showToast(t('detail.calendarFailed'));
   }
 
   if (loading) {
@@ -110,21 +120,6 @@ export default function PurchaseDetail() {
     );
   }
 
-  if (editing) {
-    return (
-      <>
-        <Stack.Screen options={{ title: t('detail.editTitle') }} />
-        <PurchaseForm initial={p} submitLabel={t('detail.saveChanges')} onCancel={() => setEditing(false)} onSubmit={saveEdit} />
-      </>
-    );
-  }
-
-  async function addToCalendar(title: string, date: string, notes: string) {
-    const r = await addDateToCalendar({ title, date, notes });
-    if (r === 'saved') showToast(t('detail.calendarAdded'));
-    else if (r === 'error') showToast(t('detail.calendarFailed'));
-  }
-
   const status = warrantyStatus(p.warrantyEndDate);
   const months = initialDuration(p);
   const duration =
@@ -132,6 +127,27 @@ export default function PurchaseDetail() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
+      <Stack.Screen
+        options={{
+          title: t('purchaseLayout.detail'),
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('detail.actions')}
+              onPress={() => setMenuOpen(true)}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.6 : 1,
+                minWidth: 44,
+                minHeight: 44,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginEnd: -12,
+              })}>
+              <Icon name="more-vertical" size={20} color={theme.text} />
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 80 }}>
         <View style={{ gap: 6 }}>
           <ThemedText type="title" style={{ fontSize: 24, lineHeight: 30 }}>
@@ -140,11 +156,22 @@ export default function PurchaseDetail() {
           <ThemedText type="small" themeColor="textSecondary">
             {p.storeName || t('detail.noStore')}
           </ThemedText>
-          <StatusBadge status={status} />
+          <View style={{ alignSelf: 'flex-start' }}>
+            <StatusBadge status={status} />
+          </View>
         </View>
 
-        <WarrantyBanner status={status} endDate={p.warrantyEndDate} />
-        {p.returnDeadline ? <ReturnBanner date={p.returnDeadline} /> : null}
+        <WarrantyBanner
+          status={status}
+          endDate={p.warrantyEndDate}
+          onCalendar={p.warrantyEndDate ? () => addToCalendar(t('detail.calWarrantyTitle', { name: p.productName }), p.warrantyEndDate!, t('detail.calNotes')) : undefined}
+        />
+        {p.returnDeadline ? (
+          <ReturnBanner
+            date={p.returnDeadline}
+            onCalendar={() => addToCalendar(t('detail.calReturnTitle', { name: p.productName }), p.returnDeadline!, t('detail.calNotes'))}
+          />
+        ) : null}
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 }}>
           <Cell label={t('detail.purchaseDate')} value={formatDate(p.purchaseDate)} />
@@ -153,39 +180,12 @@ export default function PurchaseDetail() {
           <Cell label={t('detail.endDate')} value={formatDate(p.warrantyEndDate)} />
           {p.returnDeadline ? <Cell label={t('detail.returnDeadline')} value={formatDate(p.returnDeadline)} /> : null}
         </View>
-        {p.warrantyEndDate || p.returnDeadline ? (
-          <View style={{ gap: 8 }}>
-            {p.warrantyEndDate ? (
-              <AppButton
-                small
-                variant="secondary"
-                title={t('detail.calWarranty')}
-                onPress={() => addToCalendar(t('detail.calWarrantyTitle', { name: p.productName }), p.warrantyEndDate!, t('detail.calNotes'))}
-              />
-            ) : null}
-            {p.returnDeadline ? (
-              <AppButton
-                small
-                variant="secondary"
-                title={t('detail.calReturn')}
-                onPress={() => addToCalendar(t('detail.calReturnTitle', { name: p.productName }), p.returnDeadline!, t('detail.calNotes'))}
-              />
-            ) : null}
-          </View>
-        ) : null}
         {p.notes ? <Line label={t('detail.notes')} value={p.notes} /> : null}
 
         <ReceiptSection purchaseId={p.id} receipt={p.receipt} onChanged={invalidatePurchases} />
-
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <View style={{ flex: 1 }}>
-            <AppButton variant="secondary" title={t('detail.edit')} onPress={() => setEditing(true)} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <AppButton title={t('detail.delete')} variant="danger" onPress={confirmDelete} />
-          </View>
-        </View>
       </ScrollView>
+
+      <DetailMenuSheet visible={menuOpen} onClose={() => setMenuOpen(false)} onEdit={openEdit} onDelete={confirmDelete} />
     </ThemedView>
   );
 }

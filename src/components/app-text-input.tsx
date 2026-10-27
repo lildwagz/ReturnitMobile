@@ -1,13 +1,16 @@
 import { TextInput, type TextInputProps } from 'react-native';
+import type { ComponentRef, RefObject } from 'react';
 
 import { family } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 
 // Text field with the app's font, border and colors. Props (including style) override the defaults.
-export function AppTextInput({ style, ...rest }: TextInputProps) {
+// `inputRef` exposes the underlying TextInput so callers can focus it (first-error focus on the form).
+export function AppTextInput({ style, inputRef, ...rest }: TextInputProps & { inputRef?: RefObject<ComponentRef<typeof TextInput> | null> }) {
   const theme = useTheme();
   return (
     <TextInput
+      ref={inputRef}
       placeholderTextColor={theme.textSecondary}
       style={[
         {

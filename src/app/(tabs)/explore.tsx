@@ -1,13 +1,15 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Switch, View } from 'react-native';
+import { I18nManager, Pressable, ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppButton } from '@/components/app-button';
+import { Icon } from '@/components/icon';
 import { LanguageSheet } from '@/components/language-sheet';
+import { Tile } from '@/components/tile';
 import { prefsStatus, type Prefs } from '@/components/reminder-prefs';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppButton } from '@/components/app-button';
 import { useTheme } from '@/hooks/use-theme';
 import { LANGUAGES, t, useLanguage } from '@/i18n';
 import { setAppLockEnabled, useAppLock } from '@/lib/app-lock';
@@ -15,30 +17,75 @@ import { logout } from '@/lib/auth';
 import { exportPurchasesCsv } from '@/lib/export';
 import { useReminderPrefs } from '@/lib/queries';
 import { showToast } from '@/lib/toast';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useAccount } from '@/lib/use-account';
 import { useSignedIn } from '@/lib/use-signed-in';
 
-// One line of the settings card: title, one line of help, and a control on the right.
-function SettingRow({ title, help, right, onPress, last }: { title: string; help: string; right: React.ReactNode; onPress?: () => void; last?: boolean }) {
+// One line of a settings Tile: title, one line of help, and a chevron or switch on the
+// other edge (the whole row is pressable always). Pressed feedback: opacity + ripple.
+function SettingRow({
+  title,
+  help,
+  chevron,
+  switchValue,
+  onSwitch,
+  onSwitchDisabled,
+  onSwitchLabel,
+  onPress,
+  last,
+}: {
+  title: string;
+  help: string;
+  chevron?: boolean;
+  switchValue?: boolean;
+  onSwitch?: (v: boolean) => void;
+  onSwitchDisabled?: boolean;
+  onSwitchLabel?: string;
+  onPress?: () => void;
+  last?: boolean;
+}) {
   const theme = useTheme();
+  const hasSwitch = onSwitch !== undefined;
   return (
     <Pressable
-      disabled={!onPress}
-      onPress={onPress}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderBottomWidth: last ? 0 : 1, borderBottomColor: theme.border }}>
+      disabled={!hasSwitch && !onPress}
+      onPress={hasSwitch ? () => onSwitch?.(!switchValue) : onPress}
+      accessibilityRole={hasSwitch ? undefined : onPress ? 'button' : undefined}
+      accessibilityState={hasSwitch ? { checked: !!switchValue } : undefined}
+      hitSlop={hasSwitch ? { top: 8, bottom: 8, left: 8, right: 8 } : undefined}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+        paddingVertical: Spacing.two,
+        minHeight: 44,
+        opacity: pressed ? 0.85 : 1,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: theme.border,
+      })}>
       <View style={{ flex: 1, gap: 2 }}>
-        <ThemedText style={{ fontWeight: 700 }}>{title}</ThemedText>
+        <ThemedText style={{ fontWeight: '700' }}>{title}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           {help}
         </ThemedText>
       </View>
-      {right}
+      {hasSwitch ? (
+        <Switch
+          value={!!switchValue}
+          onValueChange={onSwitch}
+          disabled={onSwitchDisabled}
+          accessibilityLabel={onSwitchLabel}
+        />
+      ) : (
+        chevron && <Icon name="chevron-right" size={20} color={theme.textSecondary} flip={I18nManager.isRTL} decorative />
+      )}
     </Pressable>
   );
 }
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const signedIn = useSignedIn();
   const { account } = useAccount(signedIn);
   const reminderPrefs = useReminderPrefs<Prefs>(signedIn === true).data;
@@ -67,79 +114,106 @@ export default function SettingsScreen() {
   return (
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: 24, gap: 16, paddingBottom: 120 }}>
-          <View style={{ gap: 4 }}>
-            <ThemedText type="title">{t('set.title')}</ThemedText>
-            <ThemedText themeColor="textSecondary">{t('set.subtitle')}</ThemedText>
-          </View>
-          {!signedIn ? (
-            <ThemedText>{t('set.signedOut')}</ThemedText>
-          ) : (
-            <>
-              <ThemedView type="backgroundElement" style={{ borderRadius: 16, paddingHorizontal: 14 }}>
-                <SettingRow
-                  title={t('set.account')}
-                  help={
-                    account?.deletionScheduledFor
-                      ? t('set.accountDeletion')
-                      : (account?.email ?? t('set.accountHelp'))
-                  }
-                  right={<ThemedText themeColor="textSecondary" style={{ fontSize: 24 }}>{t('set.chevron')}</ThemedText>}
-                  onPress={() => router.push('/account' as never)}
-                />
-                <SettingRow
-                  title={t('set.reminders')}
-                  help={reminderPrefs ? prefsStatus(reminderPrefs) : t('set.remindersHelp')}
-                  right={<AppButton variant="secondary" title={t('set.manage')} onPress={() => router.push('/reminder-settings' as never)} />}
-                />
-                <SettingRow
-                  title={t('set.language')}
-                  help={languageName}
-                  right={<AppButton small variant="secondary" title={t('set.manage')} onPress={() => setLangOpen(true)} />}
-                  onPress={() => setLangOpen(true)}
-                />
-                <SettingRow
-                  title={t('set.appLock')}
-                  help={t('set.appLockHelp')}
-                  right={<Switch value={lock.enabled} onValueChange={toggleLock} disabled={lockBusy} accessibilityLabel={t('set.appLock')} />}
-                />
-                <SettingRow
-                  title={t('set.export')}
-                  help={t('set.exportHelp')}
-                  right={<AppButton small variant="secondary" title={exporting ? t('set.exporting') : t('set.exportCsv')} onPress={exportData} disabled={exporting} />}
-                />
-                <SettingRow
-                  title={t('set.privacy')}
-                  help={t('set.privacyHelp')}
-                  right={<ThemedText>{showPrivacy ? '▲' : '🔒'}</ThemedText>}
-                  onPress={() => setShowPrivacy((v) => !v)}
-                  last
-                />
-              </ThemedView>
-              {showPrivacy && (
-                <ThemedView type="backgroundElement" style={{ padding: 14, borderRadius: 14, gap: 8 }}>
-                  <ThemedText type="small">
-                    {t('set.privacy1')}
-                  </ThemedText>
-                  <ThemedText type="small">
-                    {t('set.privacy2')}
-                  </ThemedText>
-                  <ThemedText type="small">
-                    {t('set.privacy3')}
-                  </ThemedText>
-                  <ThemedText type="small">
-                    {t('set.privacy4')}
-                  </ThemedText>
-                  <ThemedText type="small">
-                    {t('set.privacy5')}
-                  </ThemedText>
-                </ThemedView>
-              )}
-              <AppButton variant="secondary" title={t('set.signOut')} onPress={logout} />
-            </>
-          )}
-        </ScrollView>
-        <LanguageSheet visible={langOpen} onClose={() => setLangOpen(false)} />
+        {/* Wide screens: same readable width as the lists. */}
+        <View style={{ maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center', flex: 1 }}>
+          <ScrollView contentContainerStyle={{ padding: Spacing.three, gap: Spacing.three, paddingBottom: 120 }}>
+            <View style={{ gap: Spacing.one }}>
+              <ThemedText type="title">{t('set.title')}</ThemedText>
+              <ThemedText themeColor="textSecondary">{t('set.subtitle')}</ThemedText>
+            </View>
+            {!signedIn ? (
+              <ThemedText>{t('set.signedOut')}</ThemedText>
+            ) : (
+              <>
+                {/* Account */}
+                <Tile padding={Spacing.three} gap={0}>
+                  <SettingRow
+                    title={t('set.account')}
+                    help={
+                      account?.deletionScheduledFor
+                        ? t('set.accountDeletion')
+                        : (account?.email ?? t('set.accountHelp'))
+                    }
+                    chevron
+                    onPress={() => router.push('/account' as never)}
+                    last
+                  />
+                </Tile>
+
+                {/* Preferences */}
+                <Tile padding={Spacing.three} gap={0}>
+                  <SettingRow
+                    title={t('set.reminders')}
+                    help={reminderPrefs ? prefsStatus(reminderPrefs) : t('set.remindersHelp')}
+                    chevron
+                    onPress={() => router.push('/reminder-settings' as never)}
+                  />
+                  <SettingRow
+                    title={t('set.language')}
+                    help={languageName}
+                    chevron
+                    onPress={() => setLangOpen(true)}
+                  />
+                  <SettingRow
+                    title={t('set.appLock')}
+                    help={t('set.appLockHelp')}
+                    switchValue={lock.enabled}
+                    onSwitch={toggleLock}
+                    onSwitchDisabled={lockBusy}
+                    onSwitchLabel={t('set.appLock')}
+                    last
+                  />
+                </Tile>
+
+                {/* Data and privacy */}
+                <Tile padding={Spacing.three} gap={0}>
+                  <SettingRow
+                    title={t('set.export')}
+                    help={exporting ? t('set.exporting') : t('set.exportHelp')}
+                    chevron
+                    onPress={exporting ? undefined : exportData}
+                  />
+                  <SettingRow
+                    title={t('set.privacy')}
+                    help={t('set.privacyHelp')}
+                    chevron
+                    onPress={() => setShowPrivacy((v) => !v)}
+                    last
+                  />
+                </Tile>
+
+                {showPrivacy && (
+                  <ThemedView type="backgroundElement" style={{ padding: Spacing.three, borderRadius: Radius.md, gap: Spacing.two }}>
+                    <ThemedText type="small">{t('set.privacy1')}</ThemedText>
+                    <ThemedText type="small">{t('set.privacy2')}</ThemedText>
+                    <ThemedText type="small">{t('set.privacy3')}</ThemedText>
+                    <ThemedText type="small">{t('set.privacy4')}</ThemedText>
+                    <ThemedText type="small">{t('set.privacy5')}</ThemedText>
+                  </ThemedView>
+                )}
+
+                {/* Sign out: apart from the sections, clearly its own action. */}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('set.signOut')}
+                  onPress={logout}
+                  android_ripple={{ color: '#F871711F' }}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: Spacing.two,
+                    minHeight: 44,
+                    paddingVertical: Spacing.two,
+                    opacity: pressed ? 0.85 : 1,
+                  })}>
+                  <Icon name="log-out" size={20} color={theme.errorText} decorative />
+                  <ThemedText style={{ color: theme.errorText, fontWeight: '700' }}>{t('set.signOut')}</ThemedText>
+                </Pressable>
+              </>
+            )}
+          </ScrollView>
+          <LanguageSheet visible={langOpen} onClose={() => setLangOpen(false)} />
+        </View>
       </SafeAreaView>
     </ThemedView>
   );

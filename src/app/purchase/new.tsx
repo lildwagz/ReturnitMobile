@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { PurchaseForm } from '@/components/purchase-form';
@@ -6,11 +6,15 @@ import { t } from '@/i18n';
 import { apiFetch } from '@/lib/auth';
 import { connectionError, errorMessage } from '@/lib/purchase';
 import { uploadReceipt } from '@/lib/receipt';
+import { hapticSuccess } from '@/lib/haptics';
 import { invalidatePurchases } from '@/lib/query-client';
 import { showToast } from '@/lib/toast';
 
 export default function NewPurchase() {
   const router = useRouter();
+  // Session params: a receipt photographed on Home ("Foto struk"); the form starts with it attached.
+  const { receiptUri, receiptName } = useLocalSearchParams<{ receiptUri?: string; receiptName?: string }>();
+  const initialReceipt = receiptUri ? { uri: receiptUri, name: receiptName || undefined } : undefined;
 
   async function submit(body: Record<string, unknown>, receiptUri?: string) {
     try {
@@ -20,6 +24,7 @@ export default function NewPurchase() {
         body: JSON.stringify(body),
       });
       if (res.status !== 201) return await errorMessage(res);
+      hapticSuccess(); // the purchase is saved: the tick comes before the receipt upload attempt
 
       // The purchase now exists. A failed receipt upload must not look like a failed save: open the
       // purchase, where "Unggah struk" can be tried again.
@@ -47,5 +52,5 @@ export default function NewPurchase() {
     }
   }
 
-  return <PurchaseForm submitLabel={t('new.submit')} withReceipt onCancel={() => router.back()} onSubmit={submit} />;
+  return <PurchaseForm submitLabel={t('new.submit')} withReceipt initialReceipt={initialReceipt} onCancel={() => router.back()} onSubmit={submit} />;
 }

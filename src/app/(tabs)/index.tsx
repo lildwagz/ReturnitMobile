@@ -1,70 +1,140 @@
 import { useRouter } from 'expo-router';
-import { Pressable, RefreshControl, ScrollView, View, useColorScheme } from 'react-native';
+import { useRef } from 'react';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AddFab } from '@/components/add-fab';
 import { AppButton } from '@/components/app-button';
 import { EmptyState } from '@/components/empty-state';
 import { PurchaseRow } from '@/components/purchase-row';
+import { Skeleton, SkeletonTile } from '@/components/skeleton';
+import { SwipeableRow } from '@/components/swipeable-row';
+import { Tile, TileLabel } from '@/components/tile';
 import { UpdateBanner } from '@/components/update-banner';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BannerStyle, BannerStyleDark } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { Brand, MaxContentWidth, Radius, Spacing, TypeScale } from '@/constants/theme';
 import { t, tn } from '@/i18n';
+import { addDateToCalendar } from '@/lib/calendar';
+import { deletePurchaseWithConfirm } from '@/lib/delete-purchase';
 import { Summary, useAccountQuery, useHomeData, useRefetchStaleOnFocus } from '@/lib/queries';
+import { showToast } from '@/lib/toast';
 import { daysLeft, formatDate, formatIDR } from '@/lib/warranty';
 import { keys } from '@/lib/query-client';
 import { useSignedIn } from '@/lib/use-signed-in';
 
-function Stat({ label, value, tone }: { label: string; value: number | null; tone?: 'successText' | 'warningText' }) {
-  const banners = useColorScheme() === 'dark' ? BannerStyleDark : BannerStyle;
-  // Green / amber tint for the two status cards, as in the prototype.
-  const tint = tone === 'successText' ? banners.active : tone === 'warningText' ? banners.expiring : null;
+// The one deadline that comes first: the nearer of the next warranty end and the next return.
+type Hero = {
+  id: string;
+  name: string;
+  date: string;
+  kind: 'warranty' | 'return';
+  left: number;
+};
+
+function pickHero(summary: Summary): Hero | null {
+  const kind = (item: Summary['nextExpiring'] | Summary['nextReturn'], kindOf: Hero['kind']) =>
+    !item || daysLeft(item.date) === null
+      ? null
+      : { id: item.id, name: item.productName, date: item.date, kind: kindOf, left: daysLeft(item.date) as number };
+  const warranty = kind(summary.nextExpiring, 'warranty');
+  const back = kind(summary.nextReturn, 'return');
+  if (warranty && back) return warranty.left <= back.left ? warranty : back;
+  if (warranty) return warranty;
+  if (back) return back;
+  return null;
+}
+
+// The countdown number: "today" when the deadline is today. Void when it is already in the past.
+function countdown(left: number): string | null {
+  if (left < 0) return null;
+  return left === 0 ? t('home.today') : tn('daysLeft', left);
+}
+
+// Needs-attention hero: label, product name, the large countdown, Open and Add to calendar.
+function AttentionHero({ hero, onOpen }: { hero: Hero; onOpen: (id: string) => void }) {
+  const theme = useTheme();
+  const text = countdown(hero.left);
+  const calendarTitle =
+    hero.kind === 'warranty'
+      ? t('detail.calWarrantyTitle', { name: hero.name })
+      : t('detail.calReturnTitle', { name: hero.name });
   return (
-    <ThemedView
-      type="backgroundElement"
-      style={[{ flex: 1, padding: 14, borderRadius: 16, gap: 4 }, tint && { backgroundColor: tint.bg, borderColor: tint.border }]}>
-      <ThemedText type="title" themeColor={tone}>
-        {value === null ? '-' : value}
+    <Tile
+      padding={Spacing.four}
+      onPress={() => onOpen(hero.id)}
+      accessibilityLabel={
+        t('row.a11y', {
+          name: hero.name,
+          status: hero.kind === 'warranty' ? t('home.nextExpiring') : t('home.nextReturn'),
+          days: tn('daysLeft', hero.left),
+        })
+      }
+      style={{
+        borderStartWidth: Spacing.one,
+        borderStartColor: hero.kind === 'warranty' ? Brand.warning : Brand.primary,
+      }}>
+      <ThemedText type="small" themeColor="textSecondary" style={{ textTransform: 'uppercase' }}>
+        {t('home.needsAttention')}
       </ThemedText>
-      <ThemedText type="small">{label}</ThemedText>
-    </ThemedView>
+      <ThemedText type="small" themeColor="textSecondary">
+        {hero.kind === 'warranty' ? t('home.nextExpiring') : t('home.nextReturn')} · {formatDate(hero.date)}
+      </ThemedText>
+      <ThemedText numberOfLines={2} style={{ fontSize: TypeScale.lg, lineHeight: 26, fontWeight: '700' }}>
+        {hero.name}
+      </ThemedText>
+      {text && (
+        <ThemedText
+          maxFontSizeMultiplier={1.2}
+          style={{
+            fontSize: TypeScale.big,
+            lineHeight: 44,
+            fontWeight: '700',
+            // Amber only when it is urgent (30 days or less for a warranty); a date far in the
+            // future stays plain, so the colour keeps meaning something.
+            color: hero.kind === 'warranty' && hero.left <= 30 ? theme.warningText : theme.text,
+          }}>
+          {text}
+        </ThemedText>
+      )}
+      <View style={{ flexDirection: 'row', gap: Spacing.two, marginTop: Spacing.one }}>
+        <View style={{ flex: 1 }}>
+          <AppButton small title={t('home.open')} onPress={() => onOpen(hero.id)} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppButton
+            small
+            variant="secondary"
+            title={t('home.addCalendar')}
+            onPress={async () => {
+              const r = await addDateToCalendar({ title: calendarTitle, date: hero.date, notes: t('detail.calNotes') });
+              // 'canceled' is the person deciding not to save: no message, like the detail screen.
+              if (r === 'error') showToast(t('detail.calendarFailed'));
+              else if (r === 'saved') showToast(t('detail.calendarAdded'));
+            }}
+          />
+        </View>
+      </View>
+    </Tile>
   );
 }
 
-// What matters next: the money still covered and the two dates that come up soonest. Each date opens its purchase.
-function Highlights({ summary, onOpen }: { summary: Summary; onOpen: (id: string) => void }) {
-  const rows: { key: string; label: string; value: string; id?: string }[] = [];
-  if (summary.coveredValue.length > 0) {
-    rows.push({
-      key: 'value',
-      label: t('home.coveredValue'),
-      value: summary.coveredValue.map((a) => formatIDR(a.amount, a.currency)).join(' · '),
-    });
-  }
-  const dated = (label: string, item: Summary['nextExpiring'], key: string) => {
-    if (!item) return;
-    const left = daysLeft(item.date)!;
-    rows.push({
-      key,
-      label,
-      id: item.id,
-      value: item.productName + ' · ' + formatDate(item.date) + ' (' + (left === 0 ? t('home.today') : tn('daysLeft', left)) + ')',
-    });
-  };
-  dated(t('home.nextExpiring'), summary.nextExpiring, 'expiring');
-  dated(t('home.nextReturn'), summary.nextReturn, 'return');
-  if (rows.length === 0) return null;
+// Half-width number tile: one big number (the design's "one large number per tile"; long values
+// such as the covered-value sums fall back to the 20 pt heading size so they wrap, not shrink).
+function StatTile({ label, value, tone }: { label: string; value: string; tone?: 'successText' | 'warningText' }) {
+  const big = value.length <= 8;
   return (
-    <ThemedView type="backgroundElement" style={{ borderRadius: 16, padding: 14, gap: 12 }}>
-      {rows.map((r) => (
-        <Pressable key={r.key} disabled={!r.id} onPress={() => r.id && onOpen(r.id)} style={{ gap: 2 }}>
-          <ThemedText type="small" themeColor="textSecondary">
-            {r.label}
-          </ThemedText>
-          <ThemedText style={{ fontWeight: 700 }}>{r.value}</ThemedText>
-        </Pressable>
-      ))}
-    </ThemedView>
+    <Tile>
+      <ThemedText
+        type="title"
+        themeColor={tone ?? 'text'}
+        maxFontSizeMultiplier={1.2}
+        style={big ? { fontSize: TypeScale.big, lineHeight: 44 } : { fontSize: TypeScale.lg, lineHeight: 28 }}>
+        {value}
+      </ThemedText>
+      <TileLabel>{label}</TileLabel>
+    </Tile>
   );
 }
 
@@ -75,23 +145,49 @@ export default function HomeScreen() {
   useRefetchStaleOnFocus(keys.purchases);
   // The first word of the account name (from Keycloak or Google), for the greeting; nothing until it is known.
   const account = useAccountQuery<{ displayName?: string | null }>(signedIn);
-  const firstName = account.data?.displayName?.trim().split(/s+/)[0];
+  const firstName = account.data?.displayName?.trim().split(/\s+/)[0];
+
+  const hero = summary ? pickHero(summary) : null;
+
+  // Only one swipeable row may stay open: opening one closes the previous.
+  const swipeRefs = useRef(new Map<string, { close: () => void }>());
+
+  const covered = summary?.coveredValue ?? [];
+  const tileRows: { key: string; label: string; value: string; tone?: 'successText' | 'warningText' }[] = [];
+  if (active !== null) tileRows.push({ key: 'active', label: t('home.active'), value: String(active), tone: 'successText' });
+  if (expiring !== null) tileRows.push({ key: 'expiring', label: t('home.expiring'), value: String(expiring), tone: 'warningText' });
+  if (total !== null) tileRows.push({ key: 'total', label: t('home.total'), value: String(total) });
+  if (covered.length > 0) {
+    tileRows.push({
+      key: 'covered',
+      label: t('home.coveredValue'),
+      value: covered.map((a) => formatIDR(a.amount, a.currency)).join(' · '),
+    });
+  }
+  // The return tile repeats the hero when the hero already is the return deadline, so it only
+  // shows beside a warranty hero.
+  if (summary?.nextReturn && hero && hero.kind !== 'return') {
+    tileRows.push({ key: 'return', label: t('home.nextReturn'), value: formatDate(summary.nextReturn.date) });
+  }
+
+  const bentoLoading = loading && !summary;
 
   return (
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 120 }}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}>
-          <View style={{ gap: 4 }}>
+        {/* Wide screens: same readable width as the lists. */}
+        <View style={{ maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center', flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={{ padding: Spacing.three, gap: Spacing.three, paddingBottom: 120 }}
+            refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}>
+          <View style={{ gap: Spacing.one }}>
             <ThemedText type="title">{firstName ? t('home.helloName', { name: firstName }) : t('home.hello')}</ThemedText>
             <ThemedText themeColor="textSecondary">{t('home.tagline')}</ThemedText>
           </View>
           <UpdateBanner />
-          <AppButton title={t('home.add')} onPress={() => router.push('/purchase/new' as never)} />
 
           {error && (
-            <View style={{ gap: 8 }}>
+            <View style={{ gap: Spacing.two }}>
               <ThemedText type="small" themeColor="errorText">
                 {error}
               </ThemedText>
@@ -99,12 +195,27 @@ export default function HomeScreen() {
             </View>
           )}
 
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Stat label={t('home.active')} value={active} tone="successText" />
-            <Stat label={t('home.expiring')} value={expiring} tone="warningText" />
-            <Stat label={t('home.total')} value={total} />
-          </View>
-          {summary && <Highlights summary={summary} onOpen={(id) => router.push(('/purchase/' + id) as never)} />}
+          {bentoLoading ? (
+            <View style={{ gap: Spacing.two }}>
+              <SkeletonTile height={128} radius={Radius.md} />
+              <View style={{ flexDirection: 'row', gap: Spacing.two }}>
+                <SkeletonTile height={88} />
+                <SkeletonTile height={88} />
+              </View>
+            </View>
+          ) : (
+            hero && <AttentionHero hero={hero} onOpen={(id) => router.push(('/purchase/' + id) as never)} />
+          )}
+
+          {!bentoLoading && tileRows.length > 0 && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
+              {tileRows.map((row) => (
+                <View key={row.key} style={{ flexBasis: '48%', flexGrow: 1 }}>
+                  <StatTile label={row.label} value={row.value} tone={row.tone} />
+                </View>
+              ))}
+            </View>
+          )}
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <ThemedText type="subtitle" style={{ fontSize: 18, lineHeight: 24 }}>
@@ -116,12 +227,42 @@ export default function HomeScreen() {
           </View>
           {recent.length === 0 && !loading && !error ? (
             <EmptyState title={t('empty.noPurchases')} help={t('empty.addFirst')} />
+          ) : loading && recent.length === 0 ? (
+            <View style={{ gap: Spacing.two }}>
+              <Skeleton style={{ height: 76, borderRadius: Radius.md }} />
+              <Skeleton style={{ height: 76, borderRadius: Radius.md }} />
+            </View>
           ) : (
             recent.map((p) => (
-              <PurchaseRow key={p.id} p={p} onPress={() => router.push(('/purchase/' + p.id) as never)} />
+              <SwipeableRow
+                key={p.id}
+                ref={(inst) => {
+                  if (inst) swipeRefs.current.set(p.id, inst);
+                  else swipeRefs.current.delete(p.id);
+                }}
+                editLabel={t('detail.edit')}
+                deleteLabel={t('detail.delete')}
+                onEdit={() => router.push({ pathname: '/purchase/edit', params: { id: p.id } } as never)}
+                onDelete={() => deletePurchaseWithConfirm(p.id)}
+                onWillOpen={() => {
+                  swipeRefs.current.forEach((r, k) => {
+                    if (k !== p.id) r.close();
+                  });
+                }}>
+                <PurchaseRow
+                  p={p}
+                  onPress={() => router.push(('/purchase/' + p.id) as never)}
+                  onEdit={() => router.push({ pathname: '/purchase/edit', params: { id: p.id } } as never)}
+                  onDelete={() => deletePurchaseWithConfirm(p.id)}
+                />
+              </SwipeableRow>
             ))
           )}
         </ScrollView>
+
+        {/* Floating "+": the one primary action on Home and Purchases alike. */}
+        <AddFab />
+        </View>
       </SafeAreaView>
     </ThemedView>
   );

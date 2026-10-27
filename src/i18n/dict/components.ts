@@ -28,18 +28,31 @@ export const components = {
   'lock.signOut': { id: 'Keluar dari akun', en: 'Sign out', ar: 'تسجيل الخروج' },
 
   // login gate
-  'login.intro': {
-    id: 'Masuk untuk melihat catatan pembelian dan garansi Anda.',
-    en: 'Sign in to see your purchases and warranties.',
-    ar: 'سجّل الدخول لعرض مشترياتك وضماناتك.',
+  'login.benefit1': {
+    id: 'Semua tanggal akhir garansi di satu tempat',
+    en: 'Every warranty end date in one place',
+    ar: 'كل تواريخ انتهاء الضمان في مكان واحد',
+  },
+  'login.benefit2': {
+    id: 'Pengingat sebelum garansi berakhir',
+    en: 'A reminder before each one ends',
+    ar: 'تذكير قبل انتهاء كل ضمان',
+  },
+  'login.benefit3': {
+    id: 'Struk tersimpan sebagai bukti',
+    en: 'Receipts kept as proof',
+    ar: 'الإيصالات محفوظة كإثبات',
   },
   'login.signIn': { id: 'Masuk', en: 'Sign in', ar: 'تسجيل الدخول' },
   'login.google': { id: 'Lanjutkan dengan Google', en: 'Continue with Google', ar: 'المتابعة باستخدام Google' },
 
   // purchase row
   'row.open': { id: 'Buka detail {name}', en: 'Open details of {name}', ar: 'فتح تفاصيل {name}' },
+  'row.a11y': { id: '{name}, {status}, {days}', en: '{name}, {status}, {days}', ar: '{name}، {status}، {days}' },
+  'row.a11yNoDays': { id: '{name}, {status}', en: '{name}, {status}', ar: '{name}، {status}' },
+  'row.daysUnit': { id: 'hari lagi', en: 'days left', ar: 'أيام متبقية' },
+  'row.endedUnit': { id: 'hari berlalu', en: 'days past', ar: 'أيام مضت' },
   'row.returnToday': { id: 'Batas pengembalian hari ini', en: 'Return deadline is today', ar: 'اليوم آخر موعد للإرجاع' },
-  'row.chevron': { id: '›', en: '›', ar: '‹' },
 
   // banners
   'banner.active': { id: 'Garansi masih aktif', en: 'Warranty is active', ar: 'الضمان ساري' },

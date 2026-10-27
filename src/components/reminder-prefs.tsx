@@ -6,7 +6,7 @@ import { AppButton } from '@/components/app-button';
 import { AppTextInput } from '@/components/app-text-input';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Brand, Colors } from '@/constants/theme';
+import { Brand, Colors, Radius, Spacing } from '@/constants/theme';
 import { t, tn, type Key } from '@/i18n';
 import { apiFetch } from '@/lib/auth';
 import { connectionError, errorMessage } from '@/lib/purchase';
@@ -69,7 +69,7 @@ export function PushOffNotice({ channel, enabled = true }: { channel: Prefs['cha
   const [perm, setPerm] = usePushPermission();
   if (!enabled || channel !== 'push' || !perm || perm.status === 'granted') return null;
   return (
-    <ThemedView type="backgroundElement" style={{ padding: 12, borderRadius: 12, gap: 8 }}>
+    <ThemedView type="backgroundElement" style={{ padding: Spacing.three, borderRadius: Radius.sm, gap: Spacing.two }}>
       <ThemedText>{t('rem.pushOff')}</ThemedText>
       {perm.canAskAgain ? (
         <AppButton
@@ -89,14 +89,20 @@ export function PushOffNotice({ channel, enabled = true }: { channel: Prefs['cha
 export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
       onPress={onPress}
-      style={{
-        paddingHorizontal: 14,
-        paddingVertical: 8,
+      android_ripple={{ color: Brand.primary + '1F' }}
+      style={({ pressed }) => ({
+        paddingHorizontal: Spacing.three,
+        paddingVertical: Spacing.two,
+        minHeight: 44,
+        justifyContent: 'center',
         borderRadius: 16,
         backgroundColor: selected ? Brand.primary : '#8884',
-      }}>
-      <ThemedText type="small" style={{ color: selected ? 'white' : undefined }}>
+        opacity: pressed ? 0.85 : 1,
+      })}>
+      <ThemedText maxFontSizeMultiplier={1.2} type="small" style={{ color: selected ? 'white' : undefined }}>
         {label}
       </ThemedText>
     </Pressable>
@@ -186,8 +192,8 @@ export function ReminderPrefs({ signedIn }: { signedIn: boolean }) {
   const timeInput = {
     color: colors.text,
     backgroundColor: colors.backgroundElement,
-    borderRadius: 12,
-    padding: 10,
+    borderRadius: Radius.sm,
+    padding: Spacing.two,
     fontSize: 16,
     minWidth: 90,
     textAlign: 'center',
@@ -287,7 +293,7 @@ export function ReminderPrefs({ signedIn }: { signedIn: boolean }) {
             </>
           )}
 
-          <ThemedView type="backgroundElement" style={{ padding: 12, borderRadius: 12, gap: 4 }}>
+          <ThemedView type="backgroundElement" style={{ padding: Spacing.three, borderRadius: Radius.sm, gap: Spacing.one }}>
             <ThemedText type="small" style={{ fontWeight: 700 }}>
               {t('rem.summaryTitle')}
             </ThemedText>

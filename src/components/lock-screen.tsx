@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/app-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Spacing } from '@/constants/theme';
 import { t } from '@/i18n';
 import { unlockApp, useAppLock } from '@/lib/app-lock';
 import { logout } from '@/lib/auth';
@@ -45,7 +46,7 @@ export function LockScreen() {
   return (
     <ThemedView style={[StyleSheet.absoluteFill, { zIndex: 900 }]}>
       {ready && (
-        <SafeAreaView style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 16 }}>
+        <SafeAreaView style={{ flex: 1, padding: Spacing.four, justifyContent: 'center', gap: Spacing.three }}>
           <Image
             source={dark ? require('@/assets/images/logo-lockup-dark.png') : require('@/assets/images/logo-lockup.png')}
             style={{ width: 200, height: 54, alignSelf: 'center' }}
@@ -58,7 +59,7 @@ export function LockScreen() {
           <ThemedText style={{ textAlign: 'center' }}>
             {t('lock.hint')}
           </ThemedText>
-          <View style={{ gap: 10 }}>
+          <View style={{ gap: Spacing.two }}>
             <AppButton title={busy ? t('lock.checking') : t('lock.unlock')} onPress={unlock} disabled={busy} />
             <AppButton variant="secondary" title={t('lock.signOut')} onPress={logout} disabled={busy} />
           </View>

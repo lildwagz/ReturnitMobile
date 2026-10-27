@@ -4,6 +4,7 @@ export const form = {
     en: 'Fill in the basics. You can add the receipt now or later.',
     ar: 'املأ المعلومات الأساسية. يمكنك إضافة الإيصال الآن أو لاحقًا.',
   },
+  'form.more': { id: 'Opsi lainnya', en: 'More options', ar: 'خيارات أخرى' },
   'form.name': { id: 'Nama produk *', en: 'Product name *', ar: 'اسم المنتج *' },
   'form.namePlaceholder': { id: 'Contoh: Headphone Sony', en: 'Example: Sony headphones', ar: 'مثال: سماعات سوني' },
   'form.store': { id: 'Toko', en: 'Store', ar: 'المتجر' },

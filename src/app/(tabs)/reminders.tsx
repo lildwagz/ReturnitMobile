@@ -4,11 +4,14 @@ import { FlatList, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/empty-state';
+import { Icon } from '@/components/icon';
 import { PushOffNotice, Chip, type Prefs } from '@/components/reminder-prefs';
+import { Skeleton } from '@/components/skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Brand } from '@/constants/theme';
-import { t } from '@/i18n';
+import { useTheme } from '@/hooks/use-theme';
+import { Brand, MaxContentWidth, Radius, SoftShadow, Spacing } from '@/constants/theme';
+import { t, tn } from '@/i18n';
 import { apiFetch } from '@/lib/auth';
 import { connectionError, errorMessage } from '@/lib/purchase';
 import { useNotifications, useReminderPrefs, useRefetchStaleOnFocus } from '@/lib/queries';
@@ -30,8 +33,59 @@ type Note = {
   read: boolean;
 };
 
+type ListRow = { kind: 'header'; label: string } | { kind: 'note'; note: Note };
+
+// The delivery time in the app language and relative when it is recent:
+// minutes, then hours, then "yesterday", then the plain date.
+function deliveredAt(createdAt: string): string {
+  const at = new Date(createdAt);
+  const minutes = Math.floor((Date.now() - at.getTime()) / 60000);
+  if (minutes < 1) return t('rem.justNow');
+  if (minutes < 60) return tn('minutesAgo', minutes);
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return tn('hoursAgo', hours);
+  const today = new Date();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  if (yearsSame(at, yesterday)) return t('rem.yesterday');
+  return formatDate(
+    at.getFullYear() + '-' + String(at.getMonth() + 1).padStart(2, '0') + '-' + String(at.getDate()).padStart(2, '0'),
+  );
+}
+
+function yearsSame(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+// Today / This week / Earlier, each with its header row before its notes.
+function groupRows(notes: Note[]): ListRow[] {
+  const now = new Date();
+  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const week0 = today0 - 6 * 24 * 60 * 60 * 1000;
+  const rows: ListRow[] = [];
+  const push = (label: string, bucket: Note[]) => {
+    if (bucket.length === 0) return;
+    rows.push({ kind: 'header', label });
+    bucket.forEach((note) => rows.push({ kind: 'note', note }));
+  };
+  const byTime = (a: Note, b: Note) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  const inToday: Note[] = [];
+  const inWeek: Note[] = [];
+  const earlier: Note[] = [];
+  notes.forEach((n) => {
+    const at = new Date(n.createdAt).getTime();
+    if (at >= today0) inToday.push(n);
+    else if (at >= week0) inWeek.push(n);
+    else earlier.push(n);
+  });
+  push(t('rem.today'), inToday.sort(byTime));
+  push(t('rem.thisWeek'), inWeek.sort(byTime));
+  push(t('rem.earlier'), earlier.sort(byTime));
+  return rows;
+}
+
 export default function RemindersScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { open } = useLocalSearchParams<{ open?: string }>();
   const signedIn = useSignedIn() === true; // the tabs only exist while signed in
 
@@ -111,16 +165,17 @@ export default function RemindersScreen() {
   }
 
   const header = (
-    <View style={{ gap: 10, paddingBottom: 12 }}>
-      <View style={{ gap: 4 }}>
+    <View style={{ gap: Spacing.two, paddingBottom: Spacing.three }}>
+      <View style={{ gap: Spacing.one }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <ThemedText type="title">{t('rem.title')}</ThemedText>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('rem.settings')}
             hitSlop={12}
-            onPress={() => router.push('/reminder-settings' as never)}>
-            <ThemedText style={{ fontSize: 24, lineHeight: 30 }}>⚙️</ThemedText>
+            onPress={() => router.push('/reminder-settings' as never)}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+            <Icon name="settings" size={24} color={theme.text} />
           </Pressable>
         </View>
         <ThemedText themeColor="textSecondary">{t('rem.subtitle')}</ThemedText>
@@ -139,53 +194,97 @@ export default function RemindersScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <SafeAreaView style={{ flex: 1, paddingHorizontal: 16 }}>
+      <SafeAreaView style={{ flex: 1 }}>
+        {/* Wide screens: same readable width as the lists. */}
+        <View style={{ maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center', flex: 1 }}>
         <SnoozeSheet visible={snoozing !== null} choices={snoozing?.snoozeUntil ?? []} busy={snoozeBusy} onPick={snooze} onClose={() => setSnoozing(null)} />
         <FlatList
-          data={notes}
-          keyExtractor={(n) => n.id}
+          data={groupRows(notes)}
+          keyExtractor={(row) => (row.kind === 'header' ? 'h:' + row.label : row.note.id)}
           ListHeaderComponent={header}
           refreshing={loading}
           onRefresh={loadAll}
           keyboardShouldPersistTaps="handled"
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           ListEmptyComponent={
-            loading ? null : prefs && !prefs.enabled ? (
+            loading && notes.length === 0 ? (
+              <View style={{ gap: 10 }}>
+                <Skeleton style={{ height: 92, borderRadius: Radius.md }} />
+                <Skeleton style={{ height: 92, borderRadius: Radius.md }} />
+              </View>
+            ) : loading ? null : prefs && !prefs.enabled ? (
               <View style={{ gap: 12 }}>
-                <EmptyState title={t('rem.emptyOff')} help={t('rem.emptyOffHelp')} />
+                <EmptyState title={t('rem.emptyOff')} help={t('rem.emptyOffHelp')} icon="bell-off" />
                 <AppButton title={t('rem.turnOn')} onPress={() => router.push('/reminder-settings' as never)} />
               </View>
             ) : (
               <EmptyState
                 title={unreadOnly ? t('rem.emptyUnread') : t('rem.empty')}
                 help={t('rem.emptyHelp')}
+                icon={unreadOnly ? 'check-circle' : 'bell'}
               />
             )
           }
-          contentContainerStyle={{ paddingBottom: 120 }}
-          renderItem={({ item }) => (
-            <Pressable onPress={() => openNote(item)}>
-              <ThemedView
-                type="backgroundElement"
-                style={{
-                  padding: 14,
-                  borderRadius: 14,
-                  gap: 4,
-                  borderStartWidth: item.read ? 0 : 4,
-                  borderStartColor: Brand.primary,
-                }}>
-                <ThemedText style={{ fontWeight: item.read ? '400' : '700' }}>{item.title}</ThemedText>
-                <ThemedText type="small">{item.body}</ThemedText>
-                <ThemedText type="small">{new Date(item.createdAt).toLocaleString()}</ThemedText>
-                {item.purchaseId && item.snoozeUntil && item.snoozeUntil.length > 0 ? (
-                  <View style={{ alignSelf: 'flex-start', marginTop: 6 }}>
-                    <AppButton small variant="secondary" title={t('rem.snooze')} onPress={() => setSnoozing(item)} />
-                  </View>
-                ) : null}
-              </ThemedView>
-            </Pressable>
-          )}
+          contentContainerStyle={{ paddingHorizontal: Spacing.three, paddingBottom: 120, gap: 10 }}
+          renderItem={({ item }) => {
+            if (item.kind === 'header') {
+              return (
+                <ThemedText
+                  type="small"
+                  themeColor="textSecondary"
+                  style={{ marginTop: Spacing.two, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {item.label}
+                </ThemedText>
+              );
+            }
+            const note = item.note;
+            return (
+              <View>
+                {/* The card look lives on a plain View; the open-purchase Pressable and the
+                    snooze link are siblings, so screen readers reach both. */}
+                <ThemedView
+                  type="backgroundElement"
+                  style={{
+                    padding: Spacing.three,
+                    borderRadius: Radius.md,
+                    gap: Spacing.one,
+                    borderStartWidth: note.read ? 0 : Spacing.one,
+                    borderStartColor: Brand.primary,
+                    ...SoftShadow,
+                  }}>
+                  <Pressable
+                    onPress={() => openNote(note)}
+                    accessibilityRole="button"
+                    accessibilityLabel={note.title + ', ' + deliveredAt(note.createdAt)}
+                    android_ripple={{ color: Brand.primary + '1F' }}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, gap: Spacing.one })}>
+                    <ThemedText style={{ fontWeight: note.read ? '400' : '700' }}>{note.title}</ThemedText>
+                    <ThemedText type="small">{note.body}</ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {deliveredAt(note.createdAt)}
+                    </ThemedText>
+                  </Pressable>
+                  {note.purchaseId && note.snoozeUntil && note.snoozeUntil.length > 0 ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t('rem.snooze')}
+                      onPress={() => setSnoozing(note)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={({ pressed }) => ({
+                        alignSelf: 'flex-start',
+                        minHeight: 44,
+                        justifyContent: 'center',
+                        marginTop: 2,
+                        opacity: pressed ? 0.7 : 1,
+                      })}>
+                      <ThemedText type="linkPrimary">{t('rem.snooze')}</ThemedText>
+                    </Pressable>
+                  ) : null}
+                </ThemedView>
+              </View>
+            );
+          }}
         />
+        </View>
       </SafeAreaView>
     </ThemedView>
   );

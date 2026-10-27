@@ -4,6 +4,7 @@ import { AppButton } from '@/components/app-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { t } from '@/i18n';
 import { logout } from '@/lib/auth';
 import { useAccount } from '@/lib/use-account';
@@ -13,7 +14,7 @@ import { formatDate } from '@/lib/warranty';
 function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
   const theme = useTheme();
   return (
-    <View style={{ paddingVertical: 12, gap: 2, borderBottomWidth: last ? 0 : 1, borderBottomColor: theme.border }}>
+    <View style={{ paddingVertical: Spacing.three, gap: 2, borderBottomWidth: last ? 0 : 1, borderBottomColor: theme.border }}>
       <ThemedText type="small" themeColor="textSecondary">
         {label}
       </ThemedText>
@@ -28,9 +29,9 @@ export default function AccountScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 80 }}>
+      <ScrollView contentContainerStyle={{ padding: Spacing.three, gap: Spacing.three, paddingBottom: 80 }}>
         {loadError && (
-          <View style={{ gap: 8 }}>
+          <View style={{ gap: Spacing.two }}>
             <ThemedText themeColor="errorText">{loadError}</ThemedText>
             <AppButton variant="secondary" title={t('acc.retry')} onPress={loadAccount} />
           </View>
@@ -38,7 +39,7 @@ export default function AccountScreen() {
         {!account && !loadError && <ActivityIndicator />}
 
         {account && (
-          <ThemedView type="backgroundElement" style={{ borderRadius: 16, paddingHorizontal: 14 }}>
+          <ThemedView type="backgroundElement" style={{ borderRadius: Radius.md, paddingHorizontal: Spacing.three }}>
             <Row label={t('acc.name')} value={account.displayName || '-'} />
             <Row label={t('acc.email')} value={account.email} />
             <Row label={t('acc.since')} value={formatDate(account.createdAt.slice(0, 10))} last />
@@ -51,7 +52,7 @@ export default function AccountScreen() {
         )}
 
         {account?.deletionScheduledFor ? (
-          <ThemedView type="backgroundElement" style={{ padding: 14, borderRadius: 14, gap: 10 }}>
+          <ThemedView type="backgroundElement" style={{ padding: Spacing.three, borderRadius: Radius.md, gap: Spacing.two }}>
             <ThemedText style={{ fontWeight: 700 }}>{t('acc.deletionScheduled')}</ThemedText>
             <ThemedText>
               {t('acc.deletionBody', { when: new Date(account.deletionScheduledFor).toLocaleString() })}

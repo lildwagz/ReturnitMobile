@@ -40,4 +40,6 @@ export const detail = {
   'detail.calNotes': { id: 'Dicatat di ReturnIt.', en: 'Recorded in ReturnIt.', ar: 'مسجّل في ReturnIt.' },
   'detail.notes': { id: 'Catatan', en: 'Notes', ar: 'ملاحظات' },
   'detail.edit': { id: 'Edit', en: 'Edit', ar: 'تعديل' },
+  'detail.actions': { id: 'Tindakan', en: 'Actions', ar: 'الإجراءات' },
+  'detail.receiptActions': { id: 'Tindakan struk', en: 'Receipt actions', ar: 'إجراءات الإيصال' },
 } as const;

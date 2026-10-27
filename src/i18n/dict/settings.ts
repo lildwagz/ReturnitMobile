@@ -76,7 +76,6 @@ export const settings = {
     ar: 'لا يمكن للمستخدمين الآخرين رؤية بياناتك. لا يرى التطبيق كلمة مرورك أبدًا.',
   },
   'set.signOut': { id: 'Keluar', en: 'Sign out', ar: 'تسجيل الخروج' },
-  'set.chevron': { id: '›', en: '›', ar: '‹' },
 
   'purchaseLayout.add': { id: 'Tambah Pembelian', en: 'Add purchase', ar: 'إضافة شراء' },
   'purchaseLayout.detail': { id: 'Detail Pembelian', en: 'Purchase details', ar: 'تفاصيل الشراء' },

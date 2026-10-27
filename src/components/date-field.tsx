@@ -4,6 +4,7 @@ import { Platform, Pressable, View } from 'react-native';
 import { AppTextInput } from '@/components/app-text-input';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { isValidDate } from '@/lib/purchase';
 import { formatDate, todayLocal } from '@/lib/warranty';
 
@@ -47,8 +48,8 @@ export function DateField({ value, onChange }: { value: string; onChange: (v: st
           backgroundColor: theme.backgroundElement,
           borderColor: theme.border,
           borderWidth: 1,
-          borderRadius: 12,
-          padding: 12,
+          borderRadius: Radius.sm,
+          padding: Spacing.three,
         }}>
         <ThemedText>{formatDate(isValidDate(value) ? value : todayLocal())}</ThemedText>
       </Pressable>

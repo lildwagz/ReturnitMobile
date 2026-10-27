@@ -1,5 +1,8 @@
 export const tabs = {
   // Home
+  'home.needsAttention': { id: 'Perlu perhatian', en: 'Needs attention', ar: 'يحتاج انتباهك' },
+  'home.open': { id: 'Buka', en: 'Open', ar: 'فتح' },
+  'home.addCalendar': { id: 'Ke kalender', en: 'To calendar', ar: 'إلى التقويم' },
   'home.coveredValue': { id: 'Nilai barang yang masih bergaransi', en: 'Value of items still under warranty', ar: 'قيمة المنتجات التي لا تزال تحت الضمان' },
   'home.today': { id: 'hari ini', en: 'today', ar: 'اليوم' },
   'home.nextExpiring': { id: 'Garansi berakhir berikutnya', en: 'Next warranty to end', ar: 'أقرب ضمان سينتهي' },
@@ -17,12 +20,22 @@ export const tabs = {
   'home.expiring': { id: 'Segera berakhir', en: 'Ending soon', ar: 'تنتهي قريبًا' },
   'home.total': { id: 'Total pembelian', en: 'Total purchases', ar: 'إجمالي المشتريات' },
   'home.recent': { id: 'Pembelian terbaru', en: 'Recent purchases', ar: 'أحدث المشتريات' },
-  'home.seeAll': { id: 'Lihat semua →', en: 'See all →', ar: 'عرض الكل ←' },
+  'home.seeAll': { id: 'Lihat semua', en: 'See all', ar: 'عرض الكل' },
+  'add.title': { id: 'Tambah pembelian', en: 'Add a purchase', ar: 'إضافة شراء' },
+  'add.camera': { id: 'Foto struk', en: 'Photograph receipt', ar: 'تصوير الإيصال' },
+  'add.cameraHelp': {
+    id: 'Kamera terbuka, lalu form terisi dengan struk terlampir.',
+    en: 'The camera opens, then the form starts with the photo attached.',
+    ar: 'تفتح الكاميرا ثم تبدأ الاستمارة والصورة مرفقة.',
+  },
+  'add.manual': { id: 'Isi manual', en: 'Enter by hand', ar: 'إدخال يدوي' },
+  'add.manualHelp': { id: 'Isi form tanpa foto struk.', en: 'Fill in the form without a photo.', ar: 'أدخل البيانات دون صورة إيصال.' },
   'empty.noPurchases': { id: 'Belum ada pembelian', en: 'No purchases yet', ar: 'لا توجد مشتريات بعد' },
   'empty.addFirst': { id: 'Tambahkan pembelian pertama Anda.', en: 'Add your first purchase.', ar: 'أضف أول عملية شراء.' },
 
   // Purchases list
   'list.all': { id: 'Semua', en: 'All', ar: 'الكل' },
+  'list.count': { id: '{label} {n}', en: '{label} {n}', ar: '{label} {n}' },
   'list.title': { id: 'Pembelian Saya', en: 'My purchases', ar: 'مشترياتي' },
   'list.subtitle': {
     id: 'Cari produk dan cek status garansinya.',

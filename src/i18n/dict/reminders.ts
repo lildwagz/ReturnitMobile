@@ -1,4 +1,9 @@
 export const reminders = {
+  'rem.today': { id: 'Hari ini', en: 'Today', ar: 'اليوم' },
+  'rem.thisWeek': { id: 'Minggu ini', en: 'This week', ar: 'هذا الأسبوع' },
+  'rem.earlier': { id: 'Sebelumnya', en: 'Earlier', ar: 'سابقًا' },
+  'rem.yesterday': { id: 'Kemarin', en: 'Yesterday', ar: 'أمس' },
+  'rem.justNow': { id: 'Baru saja', en: 'Just now', ar: 'الآن' },
   'rem.channel.push': { id: 'Notifikasi HP', en: 'Phone notification', ar: 'إشعار على الهاتف' },
   'rem.channel.email': { id: 'E-mail', en: 'E-mail', ar: 'البريد الإلكتروني' },
   'rem.channel.in_app': { id: 'Hanya di aplikasi', en: 'In the app only', ar: 'داخل التطبيق فقط' },

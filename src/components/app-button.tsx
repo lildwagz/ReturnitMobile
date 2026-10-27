@@ -1,7 +1,7 @@
 import { Pressable } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Brand } from '@/constants/theme';
+import { Brand, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -40,12 +40,14 @@ export function AppButton({
         borderColor: look.border,
         borderWidth: 1,
         borderRadius: 12,
-        paddingVertical: small ? 8 : 12,
-        paddingHorizontal: small ? 12 : 16,
+        minHeight: 44, // minimum touch target
+        paddingVertical: Spacing.two,
+        paddingHorizontal: Spacing.three,
         alignItems: 'center',
+        justifyContent: 'center',
         opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
       })}>
-      <ThemedText style={{ color: look.fg, fontWeight: 700, fontSize: small ? 13 : 16, lineHeight: small ? 18 : 24 }}>{title}</ThemedText>
+      <ThemedText maxFontSizeMultiplier={1.2} style={{ color: look.fg, fontWeight: 700, fontSize: small ? 13 : 16, lineHeight: small ? 18 : 24 }}>{title}</ThemedText>
     </Pressable>
   );
 }
