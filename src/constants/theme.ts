@@ -17,7 +17,7 @@ export const Brand = {
   primaryDark: '#1D4ED8',
   primarySoft: '#DBEAFE',
   navy: '#17324D',
-  secondary: '#64748B',
+  secondary: '#526071',
   line: '#E2E8F0',
   success: '#2CC35E',
   successText: '#15803D',
@@ -124,6 +124,38 @@ export const Spacing = {
   five: 32,
   six: 64,
 } as const;
+
+/** Corner sizes: small (chips), tile (cards), sheet (sheet tops / hero radius). */
+export const Radius = {
+  sm: 12,
+  md: 20,
+  xl: 24,
+} as const;
+
+/** The fixed text sizes (review P2): 12 small badge, 14 small, 16 body, 20 heading row, 28 title, 36 tile number. */
+export const TypeScale = {
+  xs: 12,
+  sm: 14,
+  base: 16,
+  lg: 20,
+  title: 28,
+  big: 36,
+} as const;
+
+/**
+ * The very soft card shadow of the bento layout: `0 4 12 rgba(23,50,77,0.06)` on iOS,
+ * a low elevation plus a 1 px border on Android, nothing on web (the border does the work).
+ */
+export const SoftShadow = Platform.select({
+  ios: {
+    shadowColor: Brand.navy,
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+  },
+  android: { elevation: 2 },
+  default: {},
+});
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;

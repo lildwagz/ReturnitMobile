@@ -20,12 +20,14 @@ export function family(weight: unknown): string {
   return base + '_400Regular';
 }
 
-export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
+export function ThemedText({ style, type = 'default', themeColor, maxFontSizeMultiplier = 1.6, ...rest }: ThemedTextProps) {
   const theme = useTheme();
   const merged: TextStyle = StyleSheet.flatten([{ color: theme[themeColor ?? 'text'] }, styles[type], style]) ?? {};
   const font = type === 'code' || merged.fontFamily ? undefined : { fontFamily: family(merged.fontWeight), fontWeight: undefined };
 
-  return <Text style={[merged, font]} {...rest} />;
+  // Body text scales with the system font up to 1.6x; callers pass a lower cap for the big
+  // numerals, chips and button labels so the 44 pt layouts hold. Scaling is never disabled.
+  return <Text maxFontSizeMultiplier={maxFontSizeMultiplier} style={[merged, font]} {...rest} />;
 }
 
 const styles = StyleSheet.create({
