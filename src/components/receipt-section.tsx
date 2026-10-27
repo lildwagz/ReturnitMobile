@@ -234,7 +234,7 @@ export function ReceiptSection({ purchaseId, receipt, onChanged }: Props) {
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#0B1220AA' }}>
           <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={() => setMenuOpen(false)} style={{ flex: 1 }} />
           <View
-            accessibilityRole="dialog"
+            accessibilityViewIsModal
             accessibilityLabel={t('detail.receiptActions')}
             style={{
               backgroundColor: theme.background,

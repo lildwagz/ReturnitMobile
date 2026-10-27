@@ -33,7 +33,7 @@ export function BottomSheet({
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#0B1220AA' }}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={onClose} style={{ flex: 1 }} />
         <View
-          accessibilityRole="dialog"
+          accessibilityViewIsModal
           accessibilityLabel={label ?? title}
           style={{
             backgroundColor: theme.background,
