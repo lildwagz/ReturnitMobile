@@ -68,9 +68,9 @@ export function useDeadlines(enabled: boolean) {
 
 // ---- Pembelian ----
 
-export function usePurchaseList(status: string, q: string, category: string, enabled: boolean) {
+export function usePurchaseList(status: string, q: string, category: string, sort: string, enabled: boolean) {
   return useInfiniteQuery({
-    queryKey: keys.purchaseList(status, q, category),
+    queryKey: keys.purchaseList(status, q, category, sort),
     enabled,
     initialPageParam: 1,
     queryFn: ({ pageParam }) => {
@@ -78,6 +78,7 @@ export function usePurchaseList(status: string, q: string, category: string, ena
       if (q) path += '&q=' + encodeURIComponent(q);
       if (status) path += '&warrantyStatus=' + status;
       if (category) path += '&category=' + category;
+      if (sort) path += '&sort=' + sort;
       return apiJson<PurchasePage>(path);
     },
     getNextPageParam: (last) => (last.page * last.pageSize < last.total ? last.page + 1 : undefined),

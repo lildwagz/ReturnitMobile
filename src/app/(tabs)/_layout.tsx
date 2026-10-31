@@ -3,7 +3,9 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
 import AppTabs from '@/components/app-tabs';
+import { useLanguage } from '@/i18n';
 import { registerForPush } from '@/lib/push';
+import { syncLanguage } from '@/lib/sync-language';
 import { useSignedIn } from '@/lib/use-signed-in';
 
 export default function TabsLayout() {
@@ -11,11 +13,17 @@ export default function TabsLayout() {
   const signedIn = useSignedIn();
   const lastResponse = Notifications.useLastNotificationResponse();
   const handled = useRef<string | null>(null);
+  const { language } = useLanguage();
 
   // After every login and at every app start, as the backend asks.
   useEffect(() => {
     if (signedIn) registerForPush();
   }, [signedIn]);
+
+  // The reminders the server writes follow the language chosen here.
+  useEffect(() => {
+    if (signedIn) syncLanguage(language);
+  }, [signedIn, language]);
 
   // Tapping a reminder opens that item in the Pengingat tab.
   useEffect(() => {

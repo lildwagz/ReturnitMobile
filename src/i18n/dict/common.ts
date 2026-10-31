@@ -1,4 +1,5 @@
 export const common = {
+  'common.undo': { id: 'Urungkan', en: 'Undo', ar: 'تراجع' },
   'common.cancel': { id: 'Batal', en: 'Cancel', ar: 'إلغاء' },
   'common.close': { id: 'Tutup', en: 'Close', ar: 'إغلاق' },
   'common.unknown': { id: 'Tidak diketahui', en: 'Unknown', ar: 'غير معروف' },

@@ -19,7 +19,7 @@ import { Brand, Colors, MaxContentWidth, Radius, Spacing } from '@/constants/the
 import { t, tn } from '@/i18n';
 import { apiJson } from '@/lib/api-query';
 import { findCategory } from '@/lib/category';
-import { deletePurchaseWithConfirm } from '@/lib/delete-purchase';
+import { deleteWithUndo, usePendingDeletes } from '@/lib/pending-delete';
 import { Summary, usePurchaseList, useRefetchStaleOnFocus } from '@/lib/queries';
 import { keys } from '@/lib/query-client';
 import { useSignedIn } from '@/lib/use-signed-in';
@@ -42,6 +42,7 @@ export default function PurchasesScreen() {
   const [query, setQuery] = useState(''); // search text after a short pause in typing
   const [filter, setFilter] = useState('');
   const [category, setCategory] = useState(''); // '' = all categories
+  const [sort, setSort] = useState(''); // '' = newest purchase first, 'warrantyEnd' = warranty ending soonest first
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // Wait 400 ms after the last keystroke before searching.
@@ -50,7 +51,7 @@ export default function PurchasesScreen() {
     return () => clearTimeout(timer);
   }, [searchText]);
 
-  const list = usePurchaseList(filter, query, category, signedIn);
+  const list = usePurchaseList(filter, query, category, sort, signedIn);
   useRefetchStaleOnFocus(keys.purchases);
 
   // Chip counts come from the same GET /summary cache as the Home tiles (no extra endpoint).
@@ -58,7 +59,8 @@ export default function PurchasesScreen() {
   const summary = useQuery({ queryKey: keys.summary, enabled: signedIn, queryFn: () => apiJson<Summary>('/summary') });
   const counts = summary.data?.counts;
 
-  const items = list.data?.pages.flatMap((p) => p.items) ?? [];
+  const pendingDelete = usePendingDeletes(); // swiped away, waiting out the Undo time
+  const items = (list.data?.pages.flatMap((p) => p.items) ?? []).filter((p) => !pendingDelete.has(p.id));
   const total = list.data?.pages[0]?.total ?? 0;
   const error = list.error ? list.error.message : list.isFetchNextPageError ? t('list.loadMoreFailed') : null;
   const filtering = !!query || !!filter || !!category;
@@ -131,8 +133,8 @@ export default function PurchasesScreen() {
                     })}
                   </ScrollView>
                 </View>
-                {/* Category filter: one pill that opens the sheet; clear with the same pill's x. */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+                {/* Category filter: one pill that opens the sheet; clear with the same pill's x. Wraps on a narrow screen or a large font. */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.two }}>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={chosenCategory ? t('cat.filterActive', { name: chosenCategory.label() }) : t('cat.filter')}
@@ -154,6 +156,28 @@ export default function PurchasesScreen() {
                       {chosenCategory ? chosenCategory.label() : t('cat.filter')}
                     </ThemedText>
                     <Icon name="chevron-down" size={20} color={chosenCategory ? 'white' : colors.textSecondary} decorative />
+                  </Pressable>
+                  {/* Sort: one pill that switches between the two orders. */}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={sort ? t('list.sortEndActive') : t('list.sortNewActive')}
+                    accessibilityState={{ selected: !!sort }}
+                    onPress={() => setSort(sort ? '' : 'warrantyEnd')}
+                    android_ripple={{ color: Brand.primary + '1F' }}
+                    style={({ pressed }) => ({
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: Spacing.two,
+                      paddingHorizontal: Spacing.three,
+                      minHeight: 44,
+                      borderRadius: 999,
+                      backgroundColor: sort ? Brand.primary : colors.backgroundElement,
+                      opacity: pressed ? 0.85 : 1,
+                    })}>
+                    <Icon name="clock" size={20} color={sort ? 'white' : colors.text} decorative />
+                    <ThemedText maxFontSizeMultiplier={1.2} type="small" style={{ color: sort ? 'white' : colors.text }}>
+                      {sort ? t('list.sortEnd') : t('list.sortNew')}
+                    </ThemedText>
                   </Pressable>
                   {chosenCategory && (
                     <Pressable
@@ -186,7 +210,7 @@ export default function PurchasesScreen() {
                 editLabel={t('detail.edit')}
                 deleteLabel={t('detail.delete')}
                 onEdit={() => router.push({ pathname: '/purchase/edit', params: { id: item.id } } as never)}
-                onDelete={() => deletePurchaseWithConfirm(item.id)}
+                onDelete={() => deleteWithUndo(item.id)}
                 onWillOpen={() => {
                   swipeRefs.current.forEach((r, k) => {
                     if (k !== item.id) r.close();
@@ -196,7 +220,7 @@ export default function PurchasesScreen() {
                   p={item}
                   onPress={() => router.push(('/purchase/' + item.id) as never)}
                   onEdit={() => router.push({ pathname: '/purchase/edit', params: { id: item.id } } as never)}
-                  onDelete={() => deletePurchaseWithConfirm(item.id)}
+                  onDelete={() => deleteWithUndo(item.id)}
                 />
               </SwipeableRow>
             )}

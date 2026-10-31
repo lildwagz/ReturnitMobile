@@ -17,7 +17,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Brand, MaxContentWidth, Radius, Spacing, TypeScale } from '@/constants/theme';
 import { t, tn } from '@/i18n';
 import { addDateToCalendar } from '@/lib/calendar';
-import { deletePurchaseWithConfirm } from '@/lib/delete-purchase';
+import { deleteWithUndo, usePendingDeletes } from '@/lib/pending-delete';
 import { Summary, useAccountQuery, useHomeData, useRefetchStaleOnFocus } from '@/lib/queries';
 import { showToast } from '@/lib/toast';
 import { daysLeft, formatDate, formatIDR } from '@/lib/warranty';
@@ -185,7 +185,9 @@ function ValueTile({ label, amounts }: { label: string; amounts: { amount: numbe
 export default function HomeScreen() {
   const router = useRouter();
   const signedIn = useSignedIn() === true; // the tabs only exist while signed in
-  const { summary, active, expiring, total, recent, error, loading, refetch } = useHomeData(signedIn);
+  const { summary, active, expiring, total, recent: allRecent, error, loading, refetch } = useHomeData(signedIn);
+  const pendingDelete = usePendingDeletes(); // swiped away, waiting out the Undo time
+  const recent = allRecent.filter((p) => !pendingDelete.has(p.id));
   useRefetchStaleOnFocus(keys.purchases);
   // The first word of the account name (from Keycloak or Google), for the greeting; nothing until it is known.
   const account = useAccountQuery<{ displayName?: string | null }>(signedIn);
@@ -282,7 +284,7 @@ export default function HomeScreen() {
                 editLabel={t('detail.edit')}
                 deleteLabel={t('detail.delete')}
                 onEdit={() => router.push({ pathname: '/purchase/edit', params: { id: p.id } } as never)}
-                onDelete={() => deletePurchaseWithConfirm(p.id)}
+                onDelete={() => deleteWithUndo(p.id)}
                 onWillOpen={() => {
                   swipeRefs.current.forEach((r, k) => {
                     if (k !== p.id) r.close();
@@ -292,7 +294,7 @@ export default function HomeScreen() {
                   p={p}
                   onPress={() => router.push(('/purchase/' + p.id) as never)}
                   onEdit={() => router.push({ pathname: '/purchase/edit', params: { id: p.id } } as never)}
-                  onDelete={() => deletePurchaseWithConfirm(p.id)}
+                  onDelete={() => deleteWithUndo(p.id)}
                 />
               </SwipeableRow>
             ))
