@@ -11,6 +11,7 @@ import {
 } from '@expo-google-fonts/noto-sans-arabic';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { ShareIntentProvider } from 'expo-share-intent';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -87,6 +88,7 @@ export default function RootLayout() {
   }
 
   return (
+    <ShareIntentProvider>
     <GestureHandlerRootView style={{ flex: 1 }}>
     <QueryClientProvider client={queryClient}>
     {/* A new language remounts everything below, so every text is drawn again in it. */}
@@ -119,5 +121,6 @@ export default function RootLayout() {
     </ThemeProvider>
     </QueryClientProvider>
     </GestureHandlerRootView>
+    </ShareIntentProvider>
   );
 }

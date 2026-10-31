@@ -9,7 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { Brand, Radius, Spacing } from '@/constants/theme';
 import { t } from '@/i18n';
-import { captureReceipt, type PickedReceipt } from '@/lib/receipt';
+import { captureReceipt, pickReceipt, type PickedReceipt } from '@/lib/receipt';
 import { showToast } from '@/lib/toast';
 
 // The floating "+" with its bottom sheet. Shared by Home and the Pembelian tab. Controlled
@@ -25,9 +25,10 @@ export function AddFab({ visible, onChange }: { visible?: boolean; onChange?: (v
     onChange?.(v);
   };
 
-  async function onCamera() {
+  // Camera and file share one path: the receipt is attached, then the new-purchase form opens.
+  async function withReceipt(pick: () => Promise<PickedReceipt>) {
     setOpen(false);
-    const r: PickedReceipt = await captureReceipt();
+    const r = await pick();
     if (r.error) {
       showToast(r.error);
       return;
@@ -38,14 +39,17 @@ export function AddFab({ visible, onChange }: { visible?: boolean; onChange?: (v
       params: { receiptUri: r.uri, receiptName: r.name ?? '' },
     } as never);
   }
+  const onCamera = () => withReceipt(captureReceipt);
+  const onFile = () => withReceipt(pickReceipt);
 
   function onManual() {
     setOpen(false);
     router.push('/purchase/new' as never);
   }
 
-  const rows: { icon: 'camera' | 'edit-3'; title: string; help: string; onPress: () => void }[] = [
+  const rows: { icon: 'camera' | 'file-text' | 'edit-3'; title: string; help: string; onPress: () => void }[] = [
     { icon: 'camera', title: t('add.camera'), help: t('add.cameraHelp'), onPress: onCamera },
+    { icon: 'file-text', title: t('add.file'), help: t('add.fileHelp'), onPress: onFile },
     { icon: 'edit-3', title: t('add.manual'), help: t('add.manualHelp'), onPress: onManual },
   ];
 

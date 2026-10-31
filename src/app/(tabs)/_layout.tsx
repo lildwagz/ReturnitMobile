@@ -6,6 +6,7 @@ import AppTabs from '@/components/app-tabs';
 import { useLanguage } from '@/i18n';
 import { registerForPush } from '@/lib/push';
 import { syncLanguage } from '@/lib/sync-language';
+import { useSharedReceipt } from '@/lib/use-shared-receipt';
 import { useSignedIn } from '@/lib/use-signed-in';
 
 export default function TabsLayout() {
@@ -14,6 +15,7 @@ export default function TabsLayout() {
   const lastResponse = Notifications.useLastNotificationResponse();
   const handled = useRef<string | null>(null);
   const { language } = useLanguage();
+  useSharedReceipt();
 
   // After every login and at every app start, as the backend asks.
   useEffect(() => {

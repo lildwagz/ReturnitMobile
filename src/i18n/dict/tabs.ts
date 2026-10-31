@@ -28,6 +28,12 @@ export const tabs = {
     en: 'The camera opens, then the form starts with the photo attached.',
     ar: 'تفتح الكاميرا ثم تبدأ الاستمارة والصورة مرفقة.',
   },
+  'add.file': { id: 'Pilih berkas struk', en: 'Choose a receipt file', ar: 'اختيار ملف الإيصال' },
+  'add.fileHelp': {
+    id: 'Pilih foto atau PDF dari ponsel, lalu form terisi dengan struk terlampir.',
+    en: 'Pick a photo or PDF from the phone, then the form starts with it attached.',
+    ar: 'اختر صورة أو ملف PDF من الهاتف ثم تبدأ الاستمارة والملف مرفق.',
+  },
   'add.manual': { id: 'Isi manual', en: 'Enter by hand', ar: 'إدخال يدوي' },
   'add.manualHelp': { id: 'Isi form tanpa foto struk.', en: 'Fill in the form without a photo.', ar: 'أدخل البيانات دون صورة إيصال.' },
   'empty.noPurchases': { id: 'Belum ada pembelian', en: 'No purchases yet', ar: 'لا توجد مشتريات بعد' },

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Returnit",
     "slug": "Returnit",
-    "version": "1.7.0",
+    "version": "1.8.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "com.returnit.app",
@@ -30,6 +30,7 @@
         }
       ],
       "expo-notifications",
+      ["expo-share-intent", { "disableIOS": true, "androidIntentFilters": ["image/*", "application/pdf"] }],
       "expo-router",
       [
         "expo-splash-screen",
