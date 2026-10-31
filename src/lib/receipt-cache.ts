@@ -13,11 +13,12 @@ function hash(s: string): string {
   return (h >>> 0).toString(36);
 }
 
-type ReceiptInfo = { fileName: string; contentType: string; sizeBytes: number };
+type ReceiptInfo = { id?: string; fileName: string; contentType: string; sizeBytes: number };
 
-// Same purchase, name, type and size means the same file. Replacing the receipt normally changes one of them, and
-// forgetReceipt() is called whenever this app changes a receipt.
+// One cached file per receipt id (a purchase can hold several). Without an id (an older server) the same purchase, name,
+// type and size means the same file. forgetReceipt() is called whenever this app changes a receipt.
 export function receiptKey(purchaseId: string, r: ReceiptInfo): string {
+  if (r.id) return `${safe(purchaseId)}-${safe(r.id)}`;
   return `${safe(purchaseId)}-${r.sizeBytes}-${hash(r.fileName + '|' + r.contentType)}`;
 }
 

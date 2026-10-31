@@ -44,6 +44,7 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
   const theme = useTheme();
   const { status, numberText, unit, a11yDays } = daysDisplay(p);
   const cat = findCategory(p.category);
+  const receiptCount = p.receipts?.length ?? 0;
   const returnLeft = daysLeft(p.returnDeadline);
   const showReturn = returnLeft !== null && returnLeft >= 0 && returnLeft <= RETURN_NOTICE_DAYS;
   const numberColor =
@@ -51,7 +52,8 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
   const label = a11yDays
     ? t('row.a11y', { name: p.productName, status: statusLabel(status), days: a11yDays })
     : t('row.a11yNoDays', { name: p.productName, status: statusLabel(status) });
-  const a11yLabel = cat ? cat.label() + '. ' + label : label;
+  const withCategory = cat ? cat.label() + '. ' + label : label;
+  const a11yLabel = receiptCount ? withCategory + '. ' + tn('receipts', receiptCount) : withCategory;
   return (
     <Pressable
       onPress={onPress}
@@ -108,10 +110,22 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
         <View style={{ alignSelf: 'flex-start' }}>
           <StatusBadge status={status} />
         </View>
-        {p.price !== null && p.price !== undefined && (
-          <ThemedText type="small" themeColor="textSecondary">
-            {formatIDR(p.price, p.currency)}
-          </ThemedText>
+        {((p.price !== null && p.price !== undefined) || receiptCount > 0) && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+            {p.price !== null && p.price !== undefined && (
+              <ThemedText type="small" themeColor="textSecondary">
+                {formatIDR(p.price, p.currency)}
+              </ThemedText>
+            )}
+            {receiptCount > 0 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Icon name="paperclip" size={20} color={theme.textSecondary} decorative />
+                <ThemedText type="small" themeColor="textSecondary">
+                  {receiptCount}
+                </ThemedText>
+              </View>
+            )}
+          </View>
         )}
         {showReturn && (
           <View

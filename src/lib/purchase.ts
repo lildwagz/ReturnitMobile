@@ -1,6 +1,9 @@
 import { t } from '@/i18n';
 import { addMonths, daysBetween } from '@/lib/warranty';
 
+// One receipt file of a purchase (a purchase holds up to MAX_RECEIPTS in lib/receipt.ts).
+export type ReceiptItem = { id: string; fileName: string; contentType: string; sizeBytes: number; uploadedAt?: string };
+
 export type Purchase = {
   id: string;
   productName: string;
@@ -15,7 +18,9 @@ export type Purchase = {
   // One of the keys in lib/category.ts, or null/absent when none (older purchases).
   category?: string | null;
   notes?: string | null;
+  // The oldest receipt (older servers send only this); `receipts` lists them all, oldest first.
   receipt?: { fileName: string; contentType: string; sizeBytes: number } | null;
+  receipts?: ReceiptItem[];
 };
 
 export const DURATIONS = [3, 6, 12, 24, 36];

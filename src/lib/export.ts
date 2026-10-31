@@ -40,7 +40,7 @@ export function purchasesToCsv(purchases: Purchase[]): string {
       p.price,
       p.currency,
       p.notes,
-      p.receipt?.fileName,
+      p.receipts?.length ? p.receipts.map((r) => r.fileName).join('; ') : p.receipt?.fileName,
     ].map(cell).join(',');
   });
   // BOM first, so Excel reads the file as UTF-8 (Indonesian text, accents).

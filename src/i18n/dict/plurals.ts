@@ -50,6 +50,11 @@ export const pluralTexts = {
     en: { one: '{n} day', other: '{n} days' },
     ar: { zero: '{n} يوم', one: 'يوم واحد', two: 'يومان', few: '{n} أيام', many: '{n} يومًا', other: '{n} يوم' },
   },
+  receipts: {
+    id: { other: '{n} struk' },
+    en: { one: '{n} receipt', other: '{n} receipts' },
+    ar: { zero: '{n} إيصال', one: 'إيصال واحد', two: 'إيصالان', few: '{n} إيصالات', many: '{n} إيصالًا', other: '{n} إيصال' },
+  },
   records: {
     id: { other: '{n} catatan' },
     en: { one: '{n} record', other: '{n} records' },

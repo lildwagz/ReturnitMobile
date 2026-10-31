@@ -184,7 +184,7 @@ export default function PurchaseDetail() {
         </View>
         {p.notes ? <Line label={t('detail.notes')} value={p.notes} /> : null}
 
-        <ReceiptSection purchaseId={p.id} receipt={p.receipt} onChanged={invalidatePurchases} />
+        <ReceiptSection purchaseId={p.id} receipts={p.receipts ?? []} onChanged={invalidatePurchases} />
       </ScrollView>
 
       <DetailMenuSheet visible={menuOpen} onClose={() => setMenuOpen(false)} onEdit={openEdit} onDelete={confirmDelete} />

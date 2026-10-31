@@ -7,6 +7,8 @@ import { apiFetch } from '@/lib/auth';
 import { connectionError, errorMessage } from '@/lib/purchase';
 
 export const MAX_BYTES = 10 * 1024 * 1024;
+// Receipt files one purchase can hold (the server refuses the sixth with 409).
+export const MAX_RECEIPTS = 5;
 export const ALLOWED = ['application/pdf', 'image/jpeg', 'image/png'];
 
 export function formatSize(bytes: number) {
@@ -18,6 +20,7 @@ export function formatSize(bytes: number) {
 export async function uploadError(res: Response): Promise<string> {
   if (res.status === 413) return t('receipt.tooBig');
   if (res.status === 415) return t('receipt.badType');
+  if (res.status === 409) return t('receipt.limit');
   if (res.status === 422) return t('receipt.infected');
   if (res.status === 503) return t('receipt.scannerDown');
   return errorMessage(res);
@@ -65,12 +68,12 @@ export async function captureReceipt(): Promise<PickedReceipt> {
   return { uri: photo.uri, name: photo.fileName ?? t('receipt.photoName') };
 }
 
-// Returns null when the receipt was stored, or a message for the user.
+// Adds one more receipt to the purchase. Returns null when it was stored, or a message for the user.
 export async function uploadReceipt(purchaseId: string, uri: string): Promise<string | null> {
   const form = new FormData();
   form.append('file', new File(uri));
   try {
-    const res = await apiFetch('/purchases/' + purchaseId + '/receipt', { method: 'POST', body: form });
+    const res = await apiFetch('/purchases/' + purchaseId + '/receipts', { method: 'POST', body: form });
     return res.status === 201 ? null : await uploadError(res);
   } catch {
     return connectionError();
