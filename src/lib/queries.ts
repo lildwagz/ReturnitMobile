@@ -56,15 +56,16 @@ export function useHomeData(enabled: boolean) {
 
 // ---- Pembelian ----
 
-export function usePurchaseList(status: string, q: string, enabled: boolean) {
+export function usePurchaseList(status: string, q: string, category: string, enabled: boolean) {
   return useInfiniteQuery({
-    queryKey: keys.purchaseList(status, q),
+    queryKey: keys.purchaseList(status, q, category),
     enabled,
     initialPageParam: 1,
     queryFn: ({ pageParam }) => {
       let path = `/purchases?page=${pageParam}&pageSize=${PAGE_SIZE}`;
       if (q) path += '&q=' + encodeURIComponent(q);
       if (status) path += '&warrantyStatus=' + status;
+      if (category) path += '&category=' + category;
       return apiJson<PurchasePage>(path);
     },
     getNextPageParam: (last) => (last.page * last.pageSize < last.total ? last.page + 1 : undefined),

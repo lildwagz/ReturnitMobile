@@ -5,6 +5,8 @@ import { FlatList, Pressable, ScrollView, View, useColorScheme } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddFab } from '@/components/add-fab';
+import { CategorySheet } from '@/components/category-sheet';
+import { Icon } from '@/components/icon';
 import { EmptyState } from '@/components/empty-state';
 import { PurchaseRow } from '@/components/purchase-row';
 import { Skeleton } from '@/components/skeleton';
@@ -16,6 +18,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Brand, Colors, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { t, tn } from '@/i18n';
 import { apiJson } from '@/lib/api-query';
+import { findCategory } from '@/lib/category';
 import { deletePurchaseWithConfirm } from '@/lib/delete-purchase';
 import { Summary, usePurchaseList, useRefetchStaleOnFocus } from '@/lib/queries';
 import { keys } from '@/lib/query-client';
@@ -38,6 +41,8 @@ export default function PurchasesScreen() {
   const [searchText, setSearchText] = useState('');
   const [query, setQuery] = useState(''); // search text after a short pause in typing
   const [filter, setFilter] = useState('');
+  const [category, setCategory] = useState(''); // '' = all categories
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   // Wait 400 ms after the last keystroke before searching.
   useEffect(() => {
@@ -45,7 +50,7 @@ export default function PurchasesScreen() {
     return () => clearTimeout(timer);
   }, [searchText]);
 
-  const list = usePurchaseList(filter, query, signedIn);
+  const list = usePurchaseList(filter, query, category, signedIn);
   useRefetchStaleOnFocus(keys.purchases);
 
   // Chip counts come from the same GET /summary cache as the Home tiles (no extra endpoint).
@@ -56,7 +61,8 @@ export default function PurchasesScreen() {
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   const total = list.data?.pages[0]?.total ?? 0;
   const error = list.error ? list.error.message : list.isFetchNextPageError ? t('list.loadMoreFailed') : null;
-  const filtering = !!query || !!filter;
+  const filtering = !!query || !!filter || !!category;
+  const chosenCategory = findCategory(category);
 
   // Only one swipeable row may stay open: opening one closes the previous.
   const swipeRefs = useRef(new Map<string, { close: () => void }>());
@@ -125,6 +131,41 @@ export default function PurchasesScreen() {
                     })}
                   </ScrollView>
                 </View>
+                {/* Category filter: one pill that opens the sheet; clear with the same pill's x. */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={chosenCategory ? t('cat.filterActive', { name: chosenCategory.label() }) : t('cat.filter')}
+                    accessibilityState={{ selected: !!chosenCategory }}
+                    onPress={() => setSheetOpen(true)}
+                    android_ripple={{ color: Brand.primary + '1F' }}
+                    style={({ pressed }) => ({
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: Spacing.two,
+                      paddingHorizontal: Spacing.three,
+                      minHeight: 44,
+                      borderRadius: 999,
+                      backgroundColor: chosenCategory ? Brand.primary : colors.backgroundElement,
+                      opacity: pressed ? 0.85 : 1,
+                    })}>
+                    <Icon name={chosenCategory?.icon ?? 'grid'} size={20} color={chosenCategory ? 'white' : colors.text} decorative />
+                    <ThemedText maxFontSizeMultiplier={1.2} type="small" style={{ color: chosenCategory ? 'white' : colors.text }}>
+                      {chosenCategory ? chosenCategory.label() : t('cat.filter')}
+                    </ThemedText>
+                    <Icon name="chevron-down" size={20} color={chosenCategory ? 'white' : colors.textSecondary} decorative />
+                  </Pressable>
+                  {chosenCategory && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t('cat.filterAll')}
+                      onPress={() => setCategory('')}
+                      hitSlop={8}
+                      style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="x" size={20} color={colors.textSecondary} decorative />
+                    </Pressable>
+                  )}
+                </View>
                 <ThemedText type="small">{tn('records', total)}</ThemedText>
                 {error && (
                   <View style={{ gap: Spacing.two }}>
@@ -187,6 +228,15 @@ export default function PurchasesScreen() {
             contentContainerStyle={{ paddingHorizontal: Spacing.three, paddingBottom: 120 }}
           />
           <AddFab />
+          <CategorySheet
+            visible={sheetOpen}
+            value={category}
+            onSelect={(k) => {
+              setCategory(k);
+              setSheetOpen(false);
+            }}
+            onClose={() => setSheetOpen(false)}
+          />
         </View>
       </SafeAreaView>
     </ThemedView>

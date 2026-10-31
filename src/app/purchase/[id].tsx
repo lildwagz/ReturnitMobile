@@ -12,6 +12,7 @@ import { usePurchase } from '@/lib/queries';
 import { deletePurchaseWithConfirm } from '@/lib/delete-purchase';
 import { invalidatePurchases } from '@/lib/query-client';
 import { showToast } from '@/lib/toast';
+import { findCategory } from '@/lib/category';
 import { initialDuration } from '@/lib/purchase';
 import { formatDate, formatIDR, warrantyStatus } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
@@ -175,6 +176,7 @@ export default function PurchaseDetail() {
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 }}>
           <Cell label={t('detail.purchaseDate')} value={formatDate(p.purchaseDate)} />
+          {findCategory(p.category) ? <Cell label={t('cat.filter')} value={findCategory(p.category)!.label()} /> : null}
           <Cell label={t('detail.duration')} value={duration} />
           <Cell label={t('detail.price')} value={formatIDR(p.price, p.currency)} />
           <Cell label={t('detail.endDate')} value={formatDate(p.warrantyEndDate)} />

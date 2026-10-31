@@ -13,7 +13,8 @@ import { addDays, addMonths, formatDate, todayLocal } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { AppTextInput, } from '@/components/app-text-input';
 import { DateField } from '@/components/date-field';
-import { Icon } from '@/components/icon';
+import { Icon, type FeatherName } from '@/components/icon';
+import { CATEGORIES, findCategory } from '@/lib/category';
 import { captureReceipt, pickReceipt } from '@/lib/receipt';
 
 type Props = {
@@ -54,6 +55,35 @@ function ChoiceChip({ label, selected, onPress }: { label: string; selected: boo
         opacity: pressed ? 0.85 : 1,
       })}>
       <ThemedText maxFontSizeMultiplier={1.2} type="small" style={{ color: selected ? 'white' : theme.text }}>
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
+// One category of the icon row under the name: icon and name, filled when chosen. Tapping the chosen one clears it.
+function CategoryChip({ icon, label, selected, onPress }: { icon: FeatherName; label: string; selected: boolean; onPress: () => void }) {
+  const theme = useTheme();
+  const fg = selected ? 'white' : theme.text;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      android_ripple={{ color: Brand.primary + '1F' }}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+        paddingHorizontal: Spacing.three,
+        minHeight: 44,
+        borderRadius: 999,
+        backgroundColor: selected ? Brand.primary : theme.backgroundElement,
+        opacity: pressed ? 0.85 : 1,
+      })}>
+      <Icon name={icon} size={20} color={fg} decorative />
+      <ThemedText maxFontSizeMultiplier={1.2} type="small" style={{ color: fg }}>
         {label}
       </ThemedText>
     </Pressable>
@@ -116,6 +146,10 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [duration, setDuration] = useState<Duration>(initial ? initialDuration(initial) : 12); // new purchases start at 12 months, as in the prototype
   const [returnDays, setReturnDays] = useState<Duration>(initialReturnDays(initial)); // none unless the person sets it
+  const [category, setCategory] = useState<string | null>(initial?.category ?? null);
+  // True once the person has chosen a duration themselves: a category then never overrides it.
+  const durationTouched = useRef(!!initial);
+  const [suggested, setSuggested] = useState<number | null>(null); // months set by the last category choice, for the hint
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -140,6 +174,26 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
     padding: 12,
     fontSize: 16,
   } as const;
+
+  function chooseDuration(d: Duration) {
+    durationTouched.current = true;
+    setSuggested(null);
+    setDuration(d);
+  }
+
+  // Choosing a category on a new purchase suggests its usual warranty, unless a duration was already chosen by hand.
+  function chooseCategory(key: string) {
+    if (category === key) {
+      setCategory(null);
+      return;
+    }
+    setCategory(key);
+    const months = findCategory(key)?.months;
+    if (!initial && !durationTouched.current && months && DURATIONS.includes(months)) {
+      setDuration(months);
+      setSuggested(months);
+    }
+  }
 
   function trackField(key: FieldKey) {
     return (y: number) => {
@@ -190,6 +244,9 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
     if (price.trim()) body.price = Number(price.trim());
     if (notes.trim()) body.notes = notes.trim();
     if (initial?.currency) body.currency = initial.currency;
+    // Edit replaces the record, but the server keeps a category that is left out: say "none" explicitly when it was cleared.
+    if (category) body.category = category;
+    else if (initial) body.category = null;
     if (typeof duration === 'number') {
       body.warrantyStartDate = date;
       body.warrantyEndDate = addMonths(date, duration);
@@ -246,16 +303,26 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
         </View>
 
         <View>
+          <ThemedText type="small">{t('cat.label')}</ThemedText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: Spacing.two }}>
+            {CATEGORIES.map((c) => (
+              <CategoryChip key={c.key} icon={c.icon} label={c.label()} selected={category === c.key} onPress={() => chooseCategory(c.key)} />
+            ))}
+          </ScrollView>
+        </View>
+
+        <View>
           <ThemedText type="small">{t('form.duration')}</ThemedText>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {DURATIONS.map((m) => (
-              <ChoiceChip key={m} label={tn('months', m)} selected={duration === m} onPress={() => setDuration(m)} />
+              <ChoiceChip key={m} label={tn('months', m)} selected={duration === m} onPress={() => chooseDuration(m)} />
             ))}
             {initial && initialDuration(initial) === 'keep' && (
-              <ChoiceChip label={t('form.keep')} selected={duration === 'keep'} onPress={() => setDuration('keep')} />
+              <ChoiceChip label={t('form.keep')} selected={duration === 'keep'} onPress={() => chooseDuration('keep')} />
             )}
-            <ChoiceChip label={t('form.unknown')} selected={duration === null} onPress={() => setDuration(null)} />
+            <ChoiceChip label={t('form.unknown')} selected={duration === null} onPress={() => chooseDuration(null)} />
           </View>
+          {suggested ? <ThemedText type="small" themeColor="textSecondary">{t('cat.durationHint', { duration: tn('months', suggested) })}</ThemedText> : null}
           {endPreview ? <ThemedText type="small">{t('form.warrantyEnds', { date: formatDate(endPreview) })}</ThemedText> : null}
         </View>
 

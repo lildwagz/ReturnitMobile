@@ -16,7 +16,7 @@ focusManager.setEventListener((handleFocus) => {
 export const keys = {
   purchases: ['purchases'] as const,
   summary: ['purchases', 'summary'] as const,
-  purchaseList: (status: string, q: string) => ['purchases', 'list', status, q] as const,
+  purchaseList: (status: string, q: string, category: string) => ['purchases', 'list', status, q, category] as const,
   purchaseCount: (status: string) => ['purchases', 'count', status] as const,
   recent: ['purchases', 'recent'] as const,
   purchase: (id: string) => ['purchase', id] as const,

@@ -12,6 +12,8 @@ export type Purchase = {
   warrantyEndDate?: string | null;
   // The last day the shop takes the product back (optional).
   returnDeadline?: string | null;
+  // One of the keys in lib/category.ts, or null/absent when none (older purchases).
+  category?: string | null;
   notes?: string | null;
   receipt?: { fileName: string; contentType: string; sizeBytes: number } | null;
 };

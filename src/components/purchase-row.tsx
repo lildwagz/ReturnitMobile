@@ -5,6 +5,8 @@ import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { Radius, SoftShadow, Spacing, TypeScale } from '@/constants/theme';
 import { t, tn } from '@/i18n';
+import { Icon } from '@/components/icon';
+import { findCategory } from '@/lib/category';
 import { Purchase } from '@/lib/purchase';
 import { daysLeft, formatDate, formatIDR, statusLabel, warrantyStatus } from '@/lib/warranty';
 
@@ -41,6 +43,7 @@ function daysDisplay(p: Purchase): {
 export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onPress: () => void; onEdit?: () => void; onDelete?: () => void }) {
   const theme = useTheme();
   const { status, numberText, unit, a11yDays } = daysDisplay(p);
+  const cat = findCategory(p.category);
   const returnLeft = daysLeft(p.returnDeadline);
   const showReturn = returnLeft !== null && returnLeft >= 0 && returnLeft <= RETURN_NOTICE_DAYS;
   const numberColor =
@@ -48,11 +51,12 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
   const label = a11yDays
     ? t('row.a11y', { name: p.productName, status: statusLabel(status), days: a11yDays })
     : t('row.a11yNoDays', { name: p.productName, status: statusLabel(status) });
+  const a11yLabel = cat ? cat.label() + '. ' + label : label;
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={a11yLabel}
       accessibilityActions={
         onEdit || onDelete
           ? [
@@ -81,6 +85,19 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
           opacity: pressed ? 0.85 : 1,
         },
       ]}>
+      {cat && (
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: Radius.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.backgroundSelected,
+          }}>
+          <Icon name={cat.icon} size={20} color={theme.primary} decorative />
+        </View>
+      )}
       <View style={{ flex: 1, gap: Spacing.one }}>
         <ThemedText numberOfLines={2} style={{ fontSize: TypeScale.base, lineHeight: 24, fontWeight: '700' }}>
           {p.productName}

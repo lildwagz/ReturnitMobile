@@ -1,0 +1,22 @@
+export const category = {
+  'cat.phone': { id: 'Ponsel & tablet', en: 'Phone & tablet', ar: 'هاتف وجهاز لوحي' },
+  'cat.computer': { id: 'Komputer', en: 'Computer', ar: 'حاسوب' },
+  'cat.tv_audio': { id: 'TV & audio', en: 'TV & audio', ar: 'تلفزيون وصوتيات' },
+  'cat.camera': { id: 'Kamera', en: 'Camera', ar: 'كاميرا' },
+  'cat.appliance': { id: 'Peralatan rumah', en: 'Home appliance', ar: 'أجهزة منزلية' },
+  'cat.kitchen': { id: 'Dapur', en: 'Kitchen', ar: 'مطبخ' },
+  'cat.vehicle': { id: 'Kendaraan', en: 'Vehicle', ar: 'مركبة' },
+  'cat.tools': { id: 'Perkakas', en: 'Tools', ar: 'أدوات' },
+  'cat.furniture': { id: 'Furnitur', en: 'Furniture', ar: 'أثاث' },
+  'cat.wearable': { id: 'Jam & aksesori', en: 'Watch & accessories', ar: 'ساعات وإكسسوارات' },
+  'cat.other': { id: 'Lainnya', en: 'Other', ar: 'أخرى' },
+  'cat.label': { id: 'Kategori (opsional)', en: 'Category (optional)', ar: 'الفئة (اختياري)' },
+  'cat.filter': { id: 'Kategori', en: 'Category', ar: 'الفئة' },
+  'cat.filterAll': { id: 'Semua kategori', en: 'All categories', ar: 'كل الفئات' },
+  'cat.filterActive': { id: 'Kategori: {name}', en: 'Category: {name}', ar: 'الفئة: {name}' },
+  'cat.durationHint': {
+    id: 'Durasi garansi disetel ke {duration}. Anda bisa mengubahnya.',
+    en: 'Warranty duration set to {duration}. You can change it.',
+    ar: 'تم ضبط مدة الضمان على {duration}. يمكنك تغييرها.',
+  },
+} as const;
