@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/app-button';
@@ -56,6 +56,10 @@ function ViewerBody({
   const retriedFresh = useRef(false);
   const [pdfPage, setPdfPage] = useState(1);
   const [pdfPages, setPdfPages] = useState(0);
+  // A receipt photo is mostly small print: the button (or a tap on the photo) enlarges it to 2.5 times, and it is then
+  // moved around by dragging in both directions. A PDF has its own pinch zoom.
+  const [zoomed, setZoomed] = useState(false);
+  const { width: screenWidth } = useWindowDimensions();
 
   const isImage = receipt.contentType.startsWith('image/');
   const isPdf = receipt.contentType === 'application/pdf';
@@ -137,6 +141,16 @@ function ViewerBody({
             {formatSize(receipt.sizeBytes)}
           </ThemedText>
         </View>
+        {isImage && previewUri && !failed && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={zoomed ? t('rs.zoomOut') : t('rs.zoomIn')}
+            accessibilityState={{ selected: zoomed }}
+            onPress={() => setZoomed((z) => !z)}
+            style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}>
+            <Icon name={zoomed ? 'zoom-out' : 'zoom-in'} size={24} color={theme.text} />
+          </Pressable>
+        )}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('rs.removeReceipt')}
@@ -147,9 +161,21 @@ function ViewerBody({
         </Pressable>
       </View>
 
+      {isImage && zoomed && previewUri && !failed ? (
+        // Enlarged: the photo is bigger than the screen, so it can be dragged sideways and up and down.
+        <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator>
+          <ScrollView nestedScrollEnabled showsVerticalScrollIndicator>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('rs.zoomOut')} onPress={() => setZoomed(false)}>
+              <Image source={{ uri: previewUri }} style={{ width: screenWidth * 2.5, height: 1300 }} resizeMode="contain" onError={previewBroken} />
+            </Pressable>
+          </ScrollView>
+        </ScrollView>
+      ) : (
       <ScrollView contentContainerStyle={{ padding: Spacing.three, gap: Spacing.three, flexGrow: 1 }}>
         {isImage && previewUri && !failed && (
-          <Image source={{ uri: previewUri }} style={{ width: '100%', height: 520, borderRadius: Radius.sm }} resizeMode="contain" onError={previewBroken} />
+          <Pressable accessibilityRole="button" accessibilityLabel={t('rs.zoomIn')} onPress={() => setZoomed(true)}>
+            <Image source={{ uri: previewUri }} style={{ width: '100%', height: 520, borderRadius: Radius.sm }} resizeMode="contain" onError={previewBroken} />
+          </Pressable>
         )}
         {isPdf && previewUri && !failed && (
           <View style={{ gap: Spacing.two }}>
@@ -180,6 +206,7 @@ function ViewerBody({
         {busy && <ActivityIndicator />}
         {message && <ThemedText themeColor="errorText">{message}</ThemedText>}
       </ScrollView>
+      )}
     </ThemedView>
   );
 }

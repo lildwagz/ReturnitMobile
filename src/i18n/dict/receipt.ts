@@ -73,5 +73,7 @@ export const receiptDict = {
   'rs.newPhoto': { id: 'Ambil foto baru', en: 'Take a new photo', ar: 'التقاط صورة جديدة' },
   'rs.removeReceipt': { id: 'Hapus struk', en: 'Delete receipt', ar: 'حذف الإيصال' },
   'rs.takePhoto': { id: 'Ambil foto', en: 'Take a photo', ar: 'التقاط صورة' },
+  'rs.zoomIn': { id: 'Perbesar', en: 'Zoom in', ar: 'تكبير' },
+  'rs.zoomOut': { id: 'Perkecil', en: 'Zoom out', ar: 'تصغير' },
   'rs.openSettings': { id: 'Buka pengaturan aplikasi', en: 'Open app settings', ar: 'فتح إعدادات التطبيق' },
 } as const;

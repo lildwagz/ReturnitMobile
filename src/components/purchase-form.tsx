@@ -86,6 +86,8 @@ function CategoryChip({ icon, label, selected, onPress }: { icon: FeatherName; l
       <ThemedText maxFontSizeMultiplier={1.2} type="small" style={{ color: fg }}>
         {label}
       </ThemedText>
+      {/* the chosen one also shows a check, so the state does not rest on colour alone */}
+      {selected && <Icon name="check" size={20} color={fg} decorative />}
     </Pressable>
   );
 }
