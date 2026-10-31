@@ -16,6 +16,7 @@ focusManager.setEventListener((handleFocus) => {
 export const keys = {
   purchases: ['purchases'] as const,
   summary: ['purchases', 'summary'] as const,
+  deadlines: ['purchases', 'deadlines'] as const, // under 'purchases': every change to a purchase refreshes it
   purchaseList: (status: string, q: string, category: string) => ['purchases', 'list', status, q, category] as const,
   purchaseCount: (status: string) => ['purchases', 'count', status] as const,
   recent: ['purchases', 'recent'] as const,

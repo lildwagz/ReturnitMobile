@@ -29,6 +29,11 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Icon sf={{ default: 'receipt', selected: 'receipt.fill' }} md="receipt_long" />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="deadlines">
+        <NativeTabs.Trigger.Label>{t('tab.deadlines')}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'calendar', selected: 'calendar' }} md="event" />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="reminders">
         <NativeTabs.Trigger.Label>{t('tab.reminders')}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'bell', selected: 'bell.fill' }} md="notifications" />

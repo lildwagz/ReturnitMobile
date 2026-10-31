@@ -3,6 +3,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 import { apiJson } from '@/lib/api-query';
+import { Deadline } from '@/lib/deadlines';
 import { Purchase } from '@/lib/purchase';
 import { keys, queryClient } from '@/lib/query-client';
 
@@ -52,6 +53,17 @@ export function useHomeData(enabled: boolean) {
       await Promise.all(all.map((q) => q.refetch()));
     },
   };
+}
+
+// ---- Tenggat ----
+
+// Warranty ends and return deadlines, soonest first, including those of the last 30 days.
+export function useDeadlines(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.deadlines,
+    enabled,
+    queryFn: async () => (await apiJson<{ items: Deadline[] }>('/deadlines?pastDays=30')).items,
+  });
 }
 
 // ---- Pembelian ----
