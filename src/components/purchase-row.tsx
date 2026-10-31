@@ -1,4 +1,4 @@
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 
 import { StatusBadge } from '@/components/status-badge';
 import { ThemedText } from '@/components/themed-text';
@@ -72,6 +72,8 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
         else if (e.nativeEvent.actionName === 'delete') onDelete?.();
       }}
       android_ripple={{ color: theme.primary + '1F' }}
+      // No opacity change on press: on Android the ripple is the feedback, and fading an elevated card on every touch
+      // forces an offscreen layer right when the finger lands, which made scrolling over the list stutter.
       style={({ pressed }) => [
         {
           backgroundColor: theme.backgroundElement,
@@ -84,7 +86,7 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
           alignItems: 'center',
           gap: Spacing.two,
           ...SoftShadow,
-          opacity: pressed ? 0.85 : 1,
+          opacity: Platform.OS === 'ios' && pressed ? 0.85 : 1,
         },
       ]}>
       {cat && (

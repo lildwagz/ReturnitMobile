@@ -96,6 +96,10 @@ export function SwipeableRow({
     <ReanimatedSwipeable
       ref={ref}
       friction={2}
+      // The sideways swipe only starts after 20 px (default 10), so a vertical scroll that begins on a card is not
+      // contested by this gesture.
+      dragOffsetFromLeft={20}
+      dragOffsetFromRight={-20}
       rightThreshold={40}
       leftThreshold={40}
       overshootRight={false}
