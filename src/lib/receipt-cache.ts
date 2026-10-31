@@ -68,6 +68,18 @@ export function forgetReceipt(purchaseId: string) {
   }
 }
 
+// Drops the cached file of one receipt only (the others of the purchase stay).
+export function forgetReceiptFile(purchaseId: string, receiptId: string) {
+  try {
+    const dir = folder();
+    if (!dir.exists) return;
+    const prefix = `${safe(purchaseId)}-${safe(receiptId)}.`;
+    for (const item of dir.list()) if (item.name.startsWith(prefix)) item.delete();
+  } catch {
+    // the cache is only a convenience
+  }
+}
+
 export function clearReceiptCache() {
   try {
     const dir = folder();

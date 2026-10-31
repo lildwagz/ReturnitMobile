@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +13,8 @@ import { t } from '@/i18n';
 import { apiFetch } from '@/lib/auth';
 import { connectionError, errorMessage, ReceiptItem } from '@/lib/purchase';
 import { formatSize } from '@/lib/receipt';
-import { cachedReceipt, downloadReceipt, forgetReceipt, receiptExt, receiptKey } from '@/lib/receipt-cache';
+import { forgetReceiptFile } from '@/lib/receipt-cache';
+import { fetchReceiptLink, useReceiptFile } from '@/lib/use-receipt-file';
 
 // One receipt, full screen: the image or the PDF, with a close button and a delete button. Opened from the receipt
 // list of the detail screen. The file comes from the on-phone cache when this receipt was viewed before.
@@ -35,18 +35,6 @@ export function ReceiptViewer({
       {receipt && <ViewerBody key={receipt.id} purchaseId={purchaseId} receipt={receipt} onClose={onClose} onChanged={onChanged} />}
     </Modal>
   );
-}
-
-// A fresh short-lived link for one receipt. Kept in memory only, never stored or logged. Throws a message for the user.
-async function fetchLink(purchaseId: string, id: string): Promise<string> {
-  let res: Response;
-  try {
-    res = await apiFetch('/purchases/' + purchaseId + '/receipts/' + id);
-  } catch {
-    throw new Error(connectionError());
-  }
-  if (!res.ok) throw new Error(await errorMessage(res));
-  return (await res.json()).url as string;
 }
 
 function ViewerBody({
@@ -71,27 +59,15 @@ function ViewerBody({
 
   const isImage = receipt.contentType.startsWith('image/');
   const isPdf = receipt.contentType === 'application/pdf';
-  const key = receiptKey(purchaseId, receipt);
-  const ext = receiptExt(receipt.contentType);
 
-  // The local file: from the cache when this receipt was viewed before, otherwise downloaded through a new link.
-  const file = useQuery({
-    queryKey: ['receipt-file', purchaseId, receipt.id],
-    retry: false,
-    staleTime: Infinity,
-    gcTime: 0,
-    queryFn: async () => {
-      const cached = cachedReceipt(key, ext);
-      if (cached) return cached;
-      return downloadReceipt(await fetchLink(purchaseId, receipt.id), key, ext);
-    },
-  });
+  // The local file: from the cache when this receipt was seen before (the list's small preview), otherwise downloaded.
+  const file = useReceiptFile(purchaseId, receipt);
   const previewUri = file.data ?? null;
   const failed = file.isError || broken;
 
   // A file that cannot be shown is dropped and downloaded once more; if that one fails too, the error shows.
   function previewBroken() {
-    forgetReceipt(purchaseId);
+    forgetReceiptFile(purchaseId, receipt.id);
     if (retriedFresh.current) {
       setBroken(true);
       return;
@@ -111,7 +87,7 @@ function ViewerBody({
     setBusy(true);
     setMessage(null);
     try {
-      await Linking.openURL(await fetchLink(purchaseId, receipt.id));
+      await Linking.openURL(await fetchReceiptLink(purchaseId, receipt.id));
     } catch (e) {
       setMessage(e instanceof Error && e.message ? e.message : t('rs.cannotOpen'));
     }
@@ -129,7 +105,7 @@ function ViewerBody({
           try {
             const res = await apiFetch('/purchases/' + purchaseId + '/receipts/' + receipt.id, { method: 'DELETE' });
             if (res.status === 204) {
-              forgetReceipt(purchaseId);
+              forgetReceiptFile(purchaseId, receipt.id);
               onChanged();
               onClose();
             } else setMessage(await errorMessage(res));

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, I18nManager, Linking, Pressable, View } from 'react-native';
+import { ActivityIndicator, I18nManager, Image, Linking, Pressable, View } from 'react-native';
 
 import { AppButton } from '@/components/app-button';
 import { BottomSheet } from '@/components/bottom-sheet';
@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
 import { connectionError, ReceiptItem } from '@/lib/purchase';
 import { captureReceipt, formatSize, MAX_RECEIPTS, pickReceipt, uploadReceipt } from '@/lib/receipt';
+import { useReceiptFile } from '@/lib/use-receipt-file';
 
 type Props = {
   purchaseId: string;
@@ -69,7 +70,7 @@ export function ReceiptSection({ purchaseId, receipts, onChanged }: Props) {
       </View>
 
       {receipts.map((r) => (
-        <ReceiptRow key={r.id} receipt={r} onPress={() => setViewing(r)} />
+        <ReceiptRow key={r.id} purchaseId={purchaseId} receipt={r} onPress={() => setViewing(r)} />
       ))}
 
       {full && <ThemedText type="small" themeColor="textSecondary">{t('rs.limitReached', { max: MAX_RECEIPTS })}</ThemedText>}
@@ -87,9 +88,15 @@ export function ReceiptSection({ purchaseId, receipts, onChanged }: Props) {
   );
 }
 
-function ReceiptRow({ receipt, onPress }: { receipt: ReceiptItem; onPress: () => void }) {
+// A photo gets a small preview; a PDF (and a photo that has not loaded or cannot be shown) keeps its icon. The space is
+// reserved (a fixed square), so nothing moves when the preview arrives. The row's own label names the file, so the
+// picture is decorative for screen readers.
+function ReceiptRow({ purchaseId, receipt, onPress }: { purchaseId: string; receipt: ReceiptItem; onPress: () => void }) {
   const theme = useTheme();
   const isPdf = receipt.contentType === 'application/pdf';
+  const file = useReceiptFile(purchaseId, receipt, !isPdf);
+  const [thumbFailed, setThumbFailed] = useState(false);
+  const thumb = !isPdf && !thumbFailed ? file.data : null;
   return (
     <Pressable
       accessibilityRole="button"
@@ -106,7 +113,20 @@ function ReceiptRow({ receipt, onPress }: { receipt: ReceiptItem; onPress: () =>
         backgroundColor: theme.background,
         opacity: pressed ? 0.85 : 1,
       })}>
-      <Icon name={isPdf ? 'file-text' : 'image'} size={20} color={theme.textSecondary} decorative />
+      <View style={{ width: 48, height: 48, borderRadius: Radius.sm, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.backgroundElement }}>
+        {thumb ? (
+          <Image
+            source={{ uri: thumb }}
+            style={{ width: 48, height: 48 }}
+            resizeMode="cover"
+            accessible={false}
+            importantForAccessibility="no"
+            onError={() => setThumbFailed(true)}
+          />
+        ) : (
+          <Icon name={isPdf ? 'file-text' : 'image'} size={24} color={theme.textSecondary} decorative />
+        )}
+      </View>
       <View style={{ flex: 1 }}>
         <ThemedText numberOfLines={1}>{receipt.fileName}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
