@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 
 import { BottomSheet } from '@/components/bottom-sheet';
+import { ClaimSheet } from '@/components/claim-sheet';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Icon } from '@/components/icon';
@@ -82,6 +83,7 @@ export default function PurchaseDetail() {
   const router = useRouter();
   const theme = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [claimOpen, setClaimOpen] = useState(false);
   const query = usePurchase(id, true);
   const p = query.data ?? null;
   const loading = query.isLoading;
@@ -185,7 +187,10 @@ export default function PurchaseDetail() {
         {p.notes ? <Line label={t('detail.notes')} value={p.notes} /> : null}
 
         <ReceiptSection purchaseId={p.id} receipts={p.receipts ?? []} onChanged={invalidatePurchases} />
+        <AppButton variant="secondary" title={t('claim.button')} onPress={() => setClaimOpen(true)} />
       </ScrollView>
+
+      <ClaimSheet purchase={p} visible={claimOpen} onClose={() => setClaimOpen(false)} />
 
       <DetailMenuSheet visible={menuOpen} onClose={() => setMenuOpen(false)} onEdit={openEdit} onDelete={confirmDelete} />
     </ThemedView>
