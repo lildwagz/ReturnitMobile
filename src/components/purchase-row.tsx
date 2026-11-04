@@ -106,29 +106,17 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
         <ThemedText numberOfLines={2} style={{ fontSize: TypeScale.base, lineHeight: 24, fontWeight: '700' }}>
           {p.productName}
         </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {(p.storeName ? p.storeName + ' · ' : '') + formatDate(p.purchaseDate)}
-        </ThemedText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.one }}>
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={2} style={{ flexShrink: 1 }}>
+            {[p.storeName, formatDate(p.purchaseDate), p.price !== null && p.price !== undefined ? formatIDR(p.price, p.currency) : null]
+              .filter(Boolean)
+              .join(' · ')}
+          </ThemedText>
+          {receiptCount > 0 && <Icon name="paperclip" size={20} color={theme.textSecondary} decorative />}
+        </View>
         <View style={{ alignSelf: 'flex-start' }}>
           <StatusBadge status={status} />
         </View>
-        {((p.price !== null && p.price !== undefined) || receiptCount > 0) && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
-            {p.price !== null && p.price !== undefined && (
-              <ThemedText type="small" themeColor="textSecondary">
-                {formatIDR(p.price, p.currency)}
-              </ThemedText>
-            )}
-            {receiptCount > 0 && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Icon name="paperclip" size={20} color={theme.textSecondary} decorative />
-                <ThemedText type="small" themeColor="textSecondary">
-                  {receiptCount}
-                </ThemedText>
-              </View>
-            )}
-          </View>
-        )}
         {showReturn && (
           <View
             style={{

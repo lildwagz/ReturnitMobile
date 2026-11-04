@@ -17,7 +17,14 @@ export const claim = {
     ar: 'جارٍ جلب الإيصال {n} من {total}…',
   },
   'claim.stepBuild': { id: 'Menyusun PDF…', en: 'Building the PDF…', ar: 'جارٍ إعداد ملف PDF…' },
-  'claim.ready': { id: 'Paket klaim siap.', en: 'Claim package ready.', ar: 'ملف المطالبة جاهز.' },
+  'claim.previewTitle': { id: 'Pratinjau PDF', en: 'PDF preview', ar: 'معاينة ملف PDF' },
+  'claim.share': { id: 'Bagikan', en: 'Share', ar: 'مشاركة' },
+  'claim.previewFailed': {
+    id: 'PDF dibuat, tapi tidak bisa ditampilkan di sini. Anda tetap bisa membagikannya.',
+    en: 'The PDF was made but cannot be shown here. You can still share it.',
+    ar: 'تم إنشاء الملف لكن تعذّر عرضه هنا. يمكنك مشاركته مع ذلك.',
+  },
+  'claim.shareFailed': { id: 'Tidak bisa membuka menu bagikan.', en: 'Could not open the share menu.', ar: 'تعذّر فتح قائمة المشاركة.' },
   'claim.receiptFailed': {
     id: 'Struk {n} tidak bisa diambil.',
     en: 'Receipt {n} could not be fetched.',

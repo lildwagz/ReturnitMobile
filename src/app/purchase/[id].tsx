@@ -176,18 +176,19 @@ export default function PurchaseDetail() {
           />
         ) : null}
 
+        <AppButton title={t('claim.button')} onPress={() => setClaimOpen(true)} />
+
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 }}>
           <Cell label={t('detail.purchaseDate')} value={formatDate(p.purchaseDate)} />
           {findCategory(p.category) ? <Cell label={t('cat.filter')} value={findCategory(p.category)!.label()} /> : null}
-          <Cell label={t('detail.duration')} value={duration} />
-          <Cell label={t('detail.price')} value={formatIDR(p.price, p.currency)} />
+          {typeof months === 'number' || months === 'keep' ? <Cell label={t('detail.duration')} value={duration} /> : null}
+          {p.price !== null && p.price !== undefined ? <Cell label={t('detail.price')} value={formatIDR(p.price, p.currency)} /> : null}
           <Cell label={t('detail.endDate')} value={formatDate(p.warrantyEndDate)} />
           {p.returnDeadline ? <Cell label={t('detail.returnDeadline')} value={formatDate(p.returnDeadline)} /> : null}
         </View>
         {p.notes ? <Line label={t('detail.notes')} value={p.notes} /> : null}
 
         <ReceiptSection purchaseId={p.id} receipts={p.receipts ?? []} onChanged={invalidatePurchases} />
-        <AppButton variant="secondary" title={t('claim.button')} onPress={() => setClaimOpen(true)} />
       </ScrollView>
 
       <ClaimSheet purchase={p} visible={claimOpen} onClose={() => setClaimOpen(false)} />

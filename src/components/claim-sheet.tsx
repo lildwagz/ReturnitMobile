@@ -1,14 +1,14 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Switch, View } from 'react-native';
 
 import { AppButton } from '@/components/app-button';
 import { BottomSheet } from '@/components/bottom-sheet';
+import { ClaimPreview } from '@/components/claim-preview';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { t } from '@/i18n';
-import { ClaimOptions, createClaimPackage } from '@/lib/claim-package';
+import { ClaimOptions, createClaimPackage, discardClaimPdf } from '@/lib/claim-package';
 import { Purchase } from '@/lib/purchase';
-import { showToast } from '@/lib/toast';
 
 function Option({ label, value, onChange, disabled }: { label: string; value: boolean; onChange: (v: boolean) => void; disabled: boolean }) {
   return (
@@ -30,7 +30,26 @@ export function ClaimSheet({ purchase, visible, onClose }: { purchase: Purchase;
   const [failed, setFailed] = useState<{ index: number; id: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const skip = useRef<string[]>([]);
-  const running = useRef(false); // a second tap before the first finished must not open a second share sheet
+  const running = useRef(false); // a second tap before the first finished must not make a second PDF
+  const [preview, setPreview] = useState<{ uri: string; skipped: number } | null>(null);
+  const previewUri = useRef<string | null>(null);
+
+  useEffect(() => {
+    previewUri.current = preview?.uri ?? null;
+  }, [preview]);
+
+  // Leaving the screen with the preview open must not leave the PDF (personal data) in the cache.
+  useEffect(
+    () => () => {
+      if (previewUri.current) discardClaimPdf(previewUri.current);
+    },
+    [],
+  );
+
+  function closePreview() {
+    if (preview) discardClaimPdf(preview.uri);
+    setPreview(null);
+  }
 
   async function make() {
     if (running.current) return;
@@ -40,9 +59,9 @@ export function ClaimSheet({ purchase, visible, onClose }: { purchase: Purchase;
     setError(null);
     try {
       const r = await createClaimPackage(purchase, options, skip.current, setStep);
-      if (r.kind === 'done') {
+      if (r.kind === 'ready') {
         skip.current = [];
-        showToast(r.skipped ? t('claim.ready') + ' ' + t('claim.skippedBig', { n: r.skipped }) : t('claim.ready'));
+        setPreview({ uri: r.uri, skipped: r.skipped });
         onClose();
       } else if (r.kind === 'receiptFailed') {
         setFailed({ index: r.index, id: r.id });
@@ -70,6 +89,8 @@ export function ClaimSheet({ purchase, visible, onClose }: { purchase: Purchase;
   }
 
   return (
+    <>
+    <ClaimPreview uri={preview?.uri ?? null} skipped={preview?.skipped ?? 0} onClose={closePreview} />
     <BottomSheet visible={visible} onClose={close} title={t('claim.sheetTitle')}>
       <View style={{ gap: Spacing.two }}>
         <ThemedText type="small" themeColor="textSecondary">
@@ -106,5 +127,6 @@ export function ClaimSheet({ purchase, visible, onClose }: { purchase: Purchase;
         )}
       </View>
     </BottomSheet>
+    </>
   );
 }

@@ -162,11 +162,11 @@ async function receiptFile(purchaseId: string, r: ReceiptItem): Promise<string> 
 }
 
 export type ClaimResult =
-  | { kind: 'done'; skipped: number }
+  | { kind: 'ready'; uri: string; skipped: number } // the PDF is made and waits in the cache for the person to look at and share
   | { kind: 'receiptFailed'; index: number; id: string } // 1-based number and id of the receipt that could not be fetched
   | { kind: 'error'; message: string };
 
-// Makes the PDF and opens the share sheet. `skip` lists receipt ids the person chose to leave out after a failure.
+// Makes the PDF. `skip` lists receipt ids the person chose to leave out after a failure.
 export async function createClaimPackage(
   purchase: Purchase,
   options: ClaimOptions,
@@ -207,19 +207,29 @@ export async function createClaimPackage(
     pdf = new File(Paths.cache, `ReturnIt-${safeName}-${stamp}.pdf`);
     if (pdf.exists) pdf.delete();
     await new File(made.uri).move(pdf);
-    await Sharing.shareAsync(pdf.uri, {
-      mimeType: 'application/pdf',
-      UTI: 'com.adobe.pdf',
-      dialogTitle: t('claim.dialogTitle'),
-    });
-    return { kind: 'done', skipped };
+    return { kind: 'ready', uri: pdf.uri, skipped };
   } catch {
+    if (pdf) discardClaimPdf(pdf.uri);
     return { kind: 'error', message: t('claim.failed') };
-  } finally {
-    try {
-      if (pdf?.exists) pdf.delete(); // it holds personal data: leave no copy in the cache
-    } catch {
-      // nothing to do
-    }
+  }
+}
+
+// Opens the share sheet for a made PDF. False when the device refused or the sheet failed.
+export async function shareClaimPdf(uri: string): Promise<boolean> {
+  try {
+    await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: t('claim.dialogTitle') });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// The PDF holds personal data: leave no copy in the cache once the person is done with it.
+export function discardClaimPdf(uri: string): void {
+  try {
+    const f = new File(uri);
+    if (f.exists) f.delete();
+  } catch {
+    // nothing to do
   }
 }
