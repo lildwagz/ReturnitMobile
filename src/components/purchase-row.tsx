@@ -6,6 +6,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Radius, SoftShadow, Spacing, TypeScale } from '@/constants/theme';
 import { t, tn } from '@/i18n';
 import { Icon } from '@/components/icon';
+import { bucketLabel, useBuckets } from '@/lib/buckets';
 import { findCategory } from '@/lib/category';
 import { Purchase } from '@/lib/purchase';
 import { daysLeft, formatDate, formatIDR, statusLabel, warrantyStatus } from '@/lib/warranty';
@@ -44,6 +45,9 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
   const theme = useTheme();
   const { status, numberText, unit, a11yDays } = daysDisplay(p);
   const cat = findCategory(p.category);
+  // Shared buckets: the bucket's name and who added it, only when the person is in more than one bucket.
+  const sharedIn = bucketLabel(useBuckets(true).data, p.bucketId);
+  const bucketLine = sharedIn ? (p.addedBy && !p.addedByMe ? t('bk.rowBy', { bucket: sharedIn, name: p.addedBy }) : sharedIn) : null;
   const receiptCount = p.receipts?.length ?? 0;
   const returnLeft = daysLeft(p.returnDeadline);
   const showReturn = returnLeft !== null && returnLeft >= 0 && returnLeft <= RETURN_NOTICE_DAYS;
@@ -52,7 +56,8 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
   const label = a11yDays
     ? t('row.a11y', { name: p.productName, status: statusLabel(status), days: a11yDays })
     : t('row.a11yNoDays', { name: p.productName, status: statusLabel(status) });
-  const withCategory = cat ? cat.label() + '. ' + label : label;
+  const withBucket = bucketLine ? bucketLine + '. ' + label : label;
+  const withCategory = cat ? cat.label() + '. ' + withBucket : withBucket;
   const a11yLabel = receiptCount ? withCategory + '. ' + tn('receipts', receiptCount) : withCategory;
   return (
     <Pressable
@@ -114,6 +119,11 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
           </ThemedText>
           {receiptCount > 0 && <Icon name="paperclip" size={20} color={theme.textSecondary} decorative />}
         </View>
+        {bucketLine && (
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+            {bucketLine}
+          </ThemedText>
+        )}
         <View style={{ alignSelf: 'flex-start' }}>
           <StatusBadge status={status} />
         </View>

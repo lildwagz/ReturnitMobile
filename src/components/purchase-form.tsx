@@ -12,8 +12,10 @@ import { DURATIONS, Purchase, RETURN_CHOICES, initialDuration, initialReturnDays
 import { addDays, addMonths, formatDate, todayLocal } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { AppTextInput, } from '@/components/app-text-input';
+import { BucketPicker } from '@/components/bucket-picker';
 import { DateField } from '@/components/date-field';
 import { Icon, type FeatherName } from '@/components/icon';
+import { useSelectedBucket } from '@/lib/buckets';
 import { CATEGORIES, findCategory } from '@/lib/category';
 import { captureReceipt, pickReceipt } from '@/lib/receipt';
 
@@ -149,6 +151,9 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
   const [duration, setDuration] = useState<Duration>(initial ? initialDuration(initial) : 12); // new purchases start at 12 months, as in the prototype
   const [returnDays, setReturnDays] = useState<Duration>(initialReturnDays(initial)); // none unless the person sets it
   const [category, setCategory] = useState<string | null>(initial?.category ?? null);
+  // New purchases go to the bucket chosen in the switcher (the personal one when "All"); editing keeps the purchase's own.
+  const switcherBucket = useSelectedBucket();
+  const [bucketId, setBucketId] = useState<string | null>(initial ? (initial.bucketId ?? null) : switcherBucket);
   // True once the person has chosen a duration themselves: a category then never overrides it.
   const durationTouched = useRef(!!initial);
   const [suggested, setSuggested] = useState<number | null>(null); // months set by the last category choice, for the hint
@@ -246,6 +251,7 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
     if (price.trim()) body.price = Number(price.trim());
     if (notes.trim()) body.notes = notes.trim();
     if (initial?.currency) body.currency = initial.currency;
+    if (bucketId) body.bucketId = bucketId;
     // Edit replaces the record, but the server keeps a category that is left out: say "none" explicitly when it was cleared.
     if (category) body.category = category;
     else if (initial) body.category = null;
@@ -303,6 +309,8 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
           <DateField value={date} onChange={setDate} />
           {errors.date && <ThemedText type="small" themeColor="errorText">{errors.date}</ThemedText>}
         </View>
+
+        <BucketPicker value={bucketId} onChange={setBucketId} />
 
         <View>
           <ThemedText type="small">{t('cat.label')}</ThemedText>

@@ -17,11 +17,14 @@ export const keys = {
   purchases: ['purchases'] as const,
   summary: ['purchases', 'summary'] as const,
   deadlines: ['purchases', 'deadlines'] as const, // under 'purchases': every change to a purchase refreshes it
-  purchaseList: (status: string, q: string, category: string, sort: string) => ['purchases', 'list', status, q, category, sort] as const,
+  purchaseList: (status: string, q: string, category: string, sort: string, bucket: string | null) =>
+    ['purchases', 'list', status, q, category, sort, bucket ?? 'all'] as const,
   purchaseCount: (status: string) => ['purchases', 'count', status] as const,
   recent: ['purchases', 'recent'] as const,
   purchase: (id: string) => ['purchase', id] as const,
   account: ['account'] as const,
+  buckets: ['buckets'] as const,
+  bucketMembers: (id: string) => ['buckets', 'members', id] as const,
   prefs: ['reminder-prefs'] as const,
   notifications: (unreadOnly: boolean) => ['notifications', unreadOnly] as const,
 };

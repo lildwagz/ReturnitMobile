@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 
 import { apiJson } from '@/lib/api-query';
 import { Deadline } from '@/lib/deadlines';
+import { useSelectedBucket } from '@/lib/buckets';
 import { Purchase } from '@/lib/purchase';
 import { keys, queryClient } from '@/lib/query-client';
 
@@ -34,11 +35,17 @@ export type Summary = {
 
 // Home: one call for the counts, the covered value and the next dates, one for the newest purchases.
 export function useHomeData(enabled: boolean) {
-  const summary = useQuery({ queryKey: keys.summary, enabled, queryFn: () => apiJson<Summary>('/summary') });
-  const recent = useQuery({
-    queryKey: keys.recent,
+  const bucket = useSelectedBucket();
+  const b = bucket ? '&bucketId=' + bucket : '';
+  const summary = useQuery({
+    queryKey: [...keys.summary, bucket ?? 'all'],
     enabled,
-    queryFn: async () => (await apiJson<PurchasePage>('/purchases?pageSize=5')).items,
+    queryFn: () => apiJson<Summary>('/summary' + (bucket ? '?bucketId=' + bucket : '')),
+  });
+  const recent = useQuery({
+    queryKey: [...keys.recent, bucket ?? 'all'],
+    enabled,
+    queryFn: async () => (await apiJson<PurchasePage>('/purchases?pageSize=5' + b)).items,
   });
   const all = [summary, recent];
   return {
@@ -59,18 +66,20 @@ export function useHomeData(enabled: boolean) {
 
 // Warranty ends and return deadlines, soonest first, including those of the last 30 days.
 export function useDeadlines(enabled: boolean) {
+  const bucket = useSelectedBucket();
   return useQuery({
-    queryKey: keys.deadlines,
+    queryKey: [...keys.deadlines, bucket ?? 'all'],
     enabled,
-    queryFn: async () => (await apiJson<{ items: Deadline[] }>('/deadlines?pastDays=30')).items,
+    queryFn: async () => (await apiJson<{ items: Deadline[] }>('/deadlines?pastDays=30' + (bucket ? '&bucketId=' + bucket : ''))).items,
   });
 }
 
 // ---- Pembelian ----
 
 export function usePurchaseList(status: string, q: string, category: string, sort: string, enabled: boolean) {
+  const bucket = useSelectedBucket();
   return useInfiniteQuery({
-    queryKey: keys.purchaseList(status, q, category, sort),
+    queryKey: keys.purchaseList(status, q, category, sort, bucket),
     enabled,
     initialPageParam: 1,
     queryFn: ({ pageParam }) => {
@@ -79,6 +88,7 @@ export function usePurchaseList(status: string, q: string, category: string, sor
       if (status) path += '&warrantyStatus=' + status;
       if (category) path += '&category=' + category;
       if (sort) path += '&sort=' + sort;
+      if (bucket) path += '&bucketId=' + bucket;
       return apiJson<PurchasePage>(path);
     },
     getNextPageParam: (last) => (last.page * last.pageSize < last.total ? last.page + 1 : undefined),

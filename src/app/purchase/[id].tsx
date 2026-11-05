@@ -15,6 +15,7 @@ import { invalidatePurchases } from '@/lib/query-client';
 import { showToast } from '@/lib/toast';
 import { findCategory } from '@/lib/category';
 import { initialDuration } from '@/lib/purchase';
+import { bucketLabel, useBuckets } from '@/lib/buckets';
 import { formatDate, formatIDR, warrantyStatus } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { StatusBadge } from '@/components/status-badge';
@@ -85,6 +86,7 @@ export default function PurchaseDetail() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
   const query = usePurchase(id, true);
+  const buckets = useBuckets(true).data;
   const p = query.data ?? null;
   const loading = query.isLoading;
   const error = query.error ? query.error.message : null;
@@ -159,6 +161,11 @@ export default function PurchaseDetail() {
           <ThemedText type="small" themeColor="textSecondary">
             {p.storeName || t('detail.noStore')}
           </ThemedText>
+          {bucketLabel(buckets, p.bucketId) && (
+            <ThemedText type="small" themeColor="textSecondary">
+              {(p.addedByMe ? t('bk.addedByMe') : p.addedBy ? t('bk.addedBy', { name: p.addedBy }) : t('bk.formerMember')) + ' · ' + bucketLabel(buckets, p.bucketId)}
+            </ThemedText>
+          )}
           <View style={{ alignSelf: 'flex-start' }}>
             <StatusBadge status={status} />
           </View>

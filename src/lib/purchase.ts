@@ -21,6 +21,10 @@ export type Purchase = {
   // The oldest receipt (older servers send only this); `receipts` lists them all, oldest first.
   receipt?: { fileName: string; contentType: string; sizeBytes: number } | null;
   receipts?: ReceiptItem[];
+  // Shared buckets: the bucket it belongs to, and who added it (display name; null when that person left).
+  bucketId?: string | null;
+  addedBy?: string | null;
+  addedByMe?: boolean;
 };
 
 export const DURATIONS = [3, 6, 12, 24, 36];

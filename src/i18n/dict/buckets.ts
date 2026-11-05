@@ -1,0 +1,143 @@
+// Shared buckets (family): the switcher, the bucket screens, joining, and the bucket field on a purchase.
+// Arabic was written without a native reviewer: have it checked before release.
+export const buckets = {
+  'bk.personal': { id: 'Pribadi', en: 'Personal', ar: 'شخصي' },
+  'bk.all': { id: 'Semua', en: 'All', ar: 'الكل' },
+  'bk.chipA11y': { id: '{name}, {n} pembelian', en: '{name}, {n} purchases', ar: '{name}، {n} عملية شراء' },
+  'bk.switcherLabel': { id: 'Pilih bucket', en: 'Choose a bucket', ar: 'اختر المجموعة' },
+
+  // Settings and the list
+  'bk.title': { id: 'Bucket bersama', en: 'Shared buckets', ar: 'المجموعات المشتركة' },
+  'bk.subtitle': { id: 'Kelola garansi bersama keluarga', en: 'Keep warranties together with family', ar: 'إدارة الضمانات مع العائلة' },
+  'bk.settingsHelp': { id: 'Bagikan garansi dengan keluarga atau teman serumah', en: 'Share warranties with family or housemates', ar: 'شارك الضمانات مع العائلة أو زملاء السكن' },
+  'bk.owner': { id: 'Pemilik', en: 'Owner', ar: 'المالك' },
+  'bk.member': { id: 'Anggota', en: 'Member', ar: 'عضو' },
+  'bk.you': { id: 'Anda', en: 'You', ar: 'أنت' },
+  'bk.counts': { id: '{members} anggota · {purchases} pembelian', en: '{members} members · {purchases} purchases', ar: '{members} أعضاء · {purchases} عملية شراء' },
+  'bk.onlyYou': { id: 'Hanya Anda · {purchases} pembelian', en: 'Only you · {purchases} purchases', ar: 'أنت فقط · {purchases} عملية شراء' },
+  'bk.muted': { id: 'pengingat dimatikan', en: 'reminders off', ar: 'التذكيرات متوقفة' },
+  'bk.emptyTitle': { id: 'Bagikan garansi dengan keluarga', en: 'Share warranties with family', ar: 'شارك الضمانات مع العائلة' },
+  'bk.emptyHelp': {
+    id: 'Buat bucket, undang anggota keluarga, dan kelola garansi rumah bersama-sama.',
+    en: 'Create a bucket, invite your family, and keep the home warranties together.',
+    ar: 'أنشئ مجموعة وادعُ أفراد عائلتك وأدِر ضمانات المنزل معًا.',
+  },
+  'bk.create': { id: 'Buat bucket', en: 'Create bucket', ar: 'إنشاء مجموعة' },
+  'bk.createTitle': { id: 'Bucket baru', en: 'New bucket', ar: 'مجموعة جديدة' },
+  'bk.nameLabel': { id: 'Nama bucket', en: 'Bucket name', ar: 'اسم المجموعة' },
+  'bk.nameHelp': { id: 'Contoh: Rumah, Kantor, Kos', en: 'For example: Home, Office, Boarding house', ar: 'مثال: المنزل، المكتب، السكن' },
+  'bk.haveCode': { id: 'Punya kode undangan?', en: 'Have an invite code?', ar: 'هل لديك رمز دعوة؟' },
+  'bk.haveCodeHelp': { id: 'Tempel kode atau tautan yang dikirim kepada Anda', en: 'Paste the code or link you were sent', ar: 'الصق الرمز أو الرابط الذي وصلك' },
+
+  // The bucket screen
+  'bk.members': { id: 'Anggota', en: 'Members', ar: 'الأعضاء' },
+  'bk.invite': { id: 'Undang anggota', en: 'Invite someone', ar: 'دعوة عضو' },
+  'bk.inviteTitle': { id: 'Undang ke "{name}"', en: 'Invite to "{name}"', ar: 'دعوة إلى "{name}"' },
+  'bk.inviteHelp': {
+    id: 'Tautan berlaku 7 hari. Siapa pun yang membukanya bisa bergabung, sampai bucket penuh ({n} orang).',
+    en: 'The link works for 7 days. Anyone who opens it can join, until the bucket is full ({n} people).',
+    ar: 'الرابط صالح لمدة 7 أيام. يمكن لأي شخص يفتحه الانضمام حتى تمتلئ المجموعة ({n} أشخاص).',
+  },
+  'bk.inviteCode': { id: 'Kode: {code}', en: 'Code: {code}', ar: 'الرمز: {code}' },
+  'bk.shareLink': { id: 'Bagikan tautan', en: 'Share the link', ar: 'مشاركة الرابط' },
+  'bk.newLink': { id: 'Buat tautan baru (yang lama mati)', en: 'Make a new link (the old one stops)', ar: 'إنشاء رابط جديد (يتوقف القديم)' },
+  'bk.shareText': {
+    id: 'Gabung ke "{name}" di ReturnIt untuk mengelola garansi bersama: {link}',
+    en: 'Join "{name}" on ReturnIt to keep warranties together: {link}',
+    ar: 'انضم إلى "{name}" في ReturnIt لإدارة الضمانات معًا: {link}',
+  },
+  'bk.notify': { id: 'Pengingat bucket ini', en: 'Reminders for this bucket', ar: 'تذكيرات هذه المجموعة' },
+  'bk.notifyHelp': {
+    id: 'Matikan kalau Anda tidak mau menerima pengingat dari bucket ini. Anggota lain tetap menerimanya.',
+    en: 'Turn off to stop getting reminders from this bucket. The others still get them.',
+    ar: 'أوقفها إن لم ترغب في تلقي تذكيرات هذه المجموعة. يستمر باقي الأعضاء في تلقيها.',
+  },
+  'bk.rename': { id: 'Ubah nama', en: 'Rename', ar: 'إعادة التسمية' },
+  'bk.save': { id: 'Simpan', en: 'Save', ar: 'حفظ' },
+  'bk.remove': { id: 'Keluarkan', en: 'Remove', ar: 'إزالة' },
+  'bk.removeTitle': { id: 'Keluarkan {name}?', en: 'Remove {name}?', ar: 'إزالة {name}؟' },
+  'bk.removeBody': {
+    id: 'Pembelian yang ditambahkannya tetap ada di bucket ini.',
+    en: 'The purchases they added stay in this bucket.',
+    ar: 'تبقى عمليات الشراء التي أضافها في هذه المجموعة.',
+  },
+  'bk.leave': { id: 'Keluar dari bucket', en: 'Leave bucket', ar: 'مغادرة المجموعة' },
+  'bk.leaveTitle': { id: 'Keluar dari "{name}"?', en: 'Leave "{name}"?', ar: 'مغادرة "{name}"؟' },
+  'bk.leaveBody': {
+    id: 'Anda tidak akan melihat pembeliannya lagi. Yang Anda tambahkan tetap ada untuk anggota lain.',
+    en: 'You will no longer see its purchases. What you added stays for the other members.',
+    ar: 'لن ترى عمليات الشراء فيها بعد الآن. ما أضفته يبقى لبقية الأعضاء.',
+  },
+  'bk.transfer': { id: 'Ubah pemilik', en: 'Change owner', ar: 'تغيير المالك' },
+  'bk.transferTitle': { id: 'Jadikan {name} pemilik?', en: 'Make {name} the owner?', ar: 'جعل {name} المالك؟' },
+  'bk.transferBody': { id: 'Anda menjadi anggota biasa.', en: 'You become a regular member.', ar: 'ستصبح عضوًا عاديًا.' },
+  'bk.transferPick': { id: 'Pilih pemilik baru', en: 'Choose the new owner', ar: 'اختر المالك الجديد' },
+  'bk.delete': { id: 'Hapus bucket', en: 'Delete bucket', ar: 'حذف المجموعة' },
+  'bk.deleteTitle': { id: 'Hapus "{name}"?', en: 'Delete "{name}"?', ar: 'حذف "{name}"؟' },
+  'bk.deleteBody': {
+    id: 'Semua pembelian dan struk di dalamnya ikut terhapus untuk semua anggota. Ketik nama bucket untuk melanjutkan.',
+    en: 'Every purchase and receipt in it is deleted for all members. Type the bucket name to continue.',
+    ar: 'تُحذف كل عمليات الشراء والإيصالات فيها لدى جميع الأعضاء. اكتب اسم المجموعة للمتابعة.',
+  },
+  'bk.deleteConfirm': { id: 'Hapus selamanya', en: 'Delete for good', ar: 'حذف نهائيًا' },
+  'bk.owners': { id: 'Pemilik: {name}', en: 'Owner: {name}', ar: 'المالك: {name}' },
+  'bk.memberA11y': { id: '{name}, {role}', en: '{name}, {role}', ar: '{name}، {role}' },
+
+  // Joining
+  'bk.join.title': { id: 'Gabung ke "{name}"?', en: 'Join "{name}"?', ar: 'الانضمام إلى "{name}"؟' },
+  'bk.join.by': { id: 'Diundang oleh {name} · {n} anggota', en: 'Invited by {name} · {n} members', ar: 'دعاك {name} · {n} أعضاء' },
+  'bk.join.byUnknown': { id: '{n} anggota', en: '{n} members', ar: '{n} أعضاء' },
+  'bk.join.warn': {
+    id: 'Semua anggota bisa melihat dan mengubah pembelian di bucket ini. Anda bisa keluar kapan saja.',
+    en: 'Every member can see and change the purchases in this bucket. You can leave at any time.',
+    ar: 'يمكن لكل الأعضاء رؤية عمليات الشراء في هذه المجموعة وتعديلها. يمكنك المغادرة في أي وقت.',
+  },
+  'bk.join.action': { id: 'Gabung', en: 'Join', ar: 'انضمام' },
+  'bk.join.later': { id: 'Nanti saja', en: 'Not now', ar: 'ليس الآن' },
+  'bk.join.done': { id: 'Anda bergabung ke "{name}".', en: 'You joined "{name}".', ar: 'انضممت إلى "{name}".' },
+  'bk.join.enterTitle': { id: 'Masukkan kode undangan', en: 'Enter the invite code', ar: 'أدخل رمز الدعوة' },
+  'bk.join.enterLabel': { id: 'Kode atau tautan undangan', en: 'Invite code or link', ar: 'رمز الدعوة أو رابطه' },
+  'bk.join.check': { id: 'Periksa', en: 'Check', ar: 'تحقق' },
+  'bk.join.badCode': { id: 'Kode ini tidak dikenali.', en: 'This code is not recognised.', ar: 'لم يتم التعرف على هذا الرمز.' },
+  'bk.join.full': { id: 'Bucket ini sudah penuh.', en: 'This bucket is full.', ar: 'هذه المجموعة ممتلئة.' },
+  'bk.invitedBanner': { id: 'Anda diundang ke sebuah bucket bersama', en: 'You have been invited to a shared bucket', ar: 'تمت دعوتك إلى مجموعة مشتركة' },
+  'bk.invitedOpen': { id: 'Lihat undangan', en: 'See the invite', ar: 'عرض الدعوة' },
+  'bk.join.checking': { id: 'Memeriksa undangan…', en: 'Checking the invite…', ar: 'جارٍ التحقق من الدعوة…' },
+
+  // On purchases
+  'bk.field': { id: 'Bucket', en: 'Bucket', ar: 'المجموعة' },
+  'bk.visibleTo': { id: 'Terlihat oleh {n} orang', en: 'Visible to {n} people', ar: 'مرئي لـ {n} أشخاص' },
+  'bk.onlyYouSee': { id: 'Hanya Anda yang melihat', en: 'Only you can see it', ar: 'أنت فقط من يراه' },
+  'bk.addedBy': { id: 'Ditambahkan oleh {name}', en: 'Added by {name}', ar: 'أضافه {name}' },
+  'bk.addedByMe': { id: 'Ditambahkan oleh Anda', en: 'Added by you', ar: 'أضفته أنت' },
+  'bk.formerMember': { id: 'Ditambahkan oleh mantan anggota', en: 'Added by a former member', ar: 'أضافه عضو سابق' },
+  'bk.rowBy': { id: '{bucket} · oleh {name}', en: '{bucket} · by {name}', ar: '{bucket} · بواسطة {name}' },
+
+  // Deleting the account while in shared buckets
+  'bk.acc.body': {
+    id: 'Anda ada di bucket bersama. Yang Anda tambahkan ke sana bisa tetap ada untuk anggota lain, tanpa nama Anda, atau ikut dihapus.',
+    en: 'You are in shared buckets. What you added there can stay for the other members, without your name, or be deleted too.',
+    ar: 'أنت عضو في مجموعات مشتركة. ما أضفته هناك يمكن أن يبقى لبقية الأعضاء دون اسمك أو يُحذف معه.',
+  },
+  'bk.acc.keep': { id: 'Hapus akun, biarkan yang di bucket bersama', en: 'Delete account, keep shared items', ar: 'حذف الحساب وإبقاء العناصر المشتركة' },
+  'bk.acc.erase': { id: 'Hapus akun dan yang saya tambahkan', en: 'Delete account and what I added', ar: 'حذف الحساب وما أضفته' },
+
+  // Errors
+  'bk.err.inviteGone': {
+    id: 'Tautan ini sudah tidak berlaku. Minta pemilik membuat tautan baru.',
+    en: 'This link no longer works. Ask the owner for a new one.',
+    ar: 'هذا الرابط لم يعد صالحًا. اطلب من المالك رابطًا جديدًا.',
+  },
+  'bk.err.full': { id: 'Bucket ini sudah penuh ({n} orang).', en: 'This bucket is full ({n} people).', ar: 'هذه المجموعة ممتلئة ({n} أشخاص).' },
+  'bk.err.already': { id: 'Anda sudah ada di bucket ini.', en: 'You are already in this bucket.', ar: 'أنت عضو في هذه المجموعة بالفعل.' },
+  'bk.err.limit': { id: 'Anda sudah mencapai batas jumlah bucket.', en: 'You have reached the limit of buckets.', ar: 'وصلت إلى الحد الأقصى لعدد المجموعات.' },
+  'bk.err.transferFirst': {
+    id: 'Pemilik harus mengubah pemilik dulu sebelum keluar, atau menghapus bucket.',
+    en: 'The owner must hand over ownership before leaving, or delete the bucket.',
+    ar: 'على المالك نقل الملكية قبل المغادرة أو حذف المجموعة.',
+  },
+  'bk.err.notOwner': { id: 'Hanya pemilik bucket yang bisa melakukannya.', en: 'Only the bucket owner can do this.', ar: 'المالك فقط يستطيع فعل ذلك.' },
+  'bk.err.notFound': { id: 'Bucket tidak ditemukan.', en: 'Bucket not found.', ar: 'لم يتم العثور على المجموعة.' },
+  'bk.err.tooMany': { id: 'Terlalu banyak percobaan. Coba lagi sebentar lagi.', en: 'Too many attempts. Try again shortly.', ar: 'محاولات كثيرة. حاول مرة أخرى بعد قليل.' },
+  'bk.err.invalid': { id: 'Nama harus 1 sampai 60 karakter.', en: 'The name must be 1 to 60 characters.', ar: 'يجب أن يتراوح الاسم بين 1 و60 حرفًا.' },
+} as const;

@@ -5,6 +5,7 @@ import { FlatList, Pressable, ScrollView, View, useColorScheme } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddFab } from '@/components/add-fab';
+import { BucketChips } from '@/components/bucket-chips';
 import { CategorySheet } from '@/components/category-sheet';
 import { Icon } from '@/components/icon';
 import { EmptyState } from '@/components/empty-state';
@@ -21,6 +22,7 @@ import { apiJson } from '@/lib/api-query';
 import { findCategory } from '@/lib/category';
 import { deleteWithUndo, usePendingDeletes } from '@/lib/pending-delete';
 import { Summary, usePurchaseList, useRefetchStaleOnFocus } from '@/lib/queries';
+import { useSelectedBucket } from '@/lib/buckets';
 import { keys } from '@/lib/query-client';
 import { useSignedIn } from '@/lib/use-signed-in';
 
@@ -56,7 +58,12 @@ export default function PurchasesScreen() {
 
   // Chip counts come from the same GET /summary cache as the Home tiles (no extra endpoint).
   // Without a summary (error/loading) the chips show plain labels, never a stale number.
-  const summary = useQuery({ queryKey: keys.summary, enabled: signedIn, queryFn: () => apiJson<Summary>('/summary') });
+  const bucket = useSelectedBucket();
+  const summary = useQuery({
+    queryKey: [...keys.summary, bucket ?? 'all'],
+    enabled: signedIn,
+    queryFn: () => apiJson<Summary>('/summary' + (bucket ? '?bucketId=' + bucket : '')),
+  });
   const counts = summary.data?.counts;
 
   const pendingDelete = usePendingDeletes(); // swiped away, waiting out the Undo time
@@ -83,6 +90,7 @@ export default function PurchasesScreen() {
                   <ThemedText type="title">{t('list.title')}</ThemedText>
                   <ThemedText themeColor="textSecondary">{t('list.subtitle')}</ThemedText>
                 </View>
+                <BucketChips />
                 <AppTextInput
                   value={searchText}
                   onChangeText={setSearchText}

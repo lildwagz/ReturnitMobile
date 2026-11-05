@@ -4,6 +4,8 @@ import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddFab } from '@/components/add-fab';
+import { BucketChips } from '@/components/bucket-chips';
+import { PendingInviteBanner } from '@/components/pending-invite-banner';
 import { AppButton } from '@/components/app-button';
 import { EmptyState } from '@/components/empty-state';
 import { PurchaseRow } from '@/components/purchase-row';
@@ -224,6 +226,8 @@ export default function HomeScreen() {
             <ThemedText themeColor="textSecondary">{t('home.tagline')}</ThemedText>
           </View>
           <UpdateBanner />
+          <PendingInviteBanner />
+          <BucketChips />
 
           {error && (
             <View style={{ gap: Spacing.two }}>

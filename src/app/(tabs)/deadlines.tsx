@@ -4,6 +4,7 @@ import { I18nManager, Pressable, SectionList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/app-button';
+import { BucketChips } from '@/components/bucket-chips';
 import { EmptyState } from '@/components/empty-state';
 import { Icon } from '@/components/icon';
 import { Skeleton } from '@/components/skeleton';
@@ -54,6 +55,7 @@ export default function DeadlinesScreen() {
               <View style={{ gap: Spacing.one, paddingBottom: Spacing.two }}>
                 <ThemedText type="title">{t('dl.title')}</ThemedText>
                 <ThemedText themeColor="textSecondary">{t('dl.subtitle')}</ThemedText>
+                <BucketChips />
               </View>
             }
             renderSectionHeader={({ section }) => (

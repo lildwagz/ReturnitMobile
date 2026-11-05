@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 
 import { t } from '@/i18n';
 import { apiFetch, login } from '@/lib/auth';
+import { useBuckets } from '@/lib/buckets';
 import { connectionError, errorMessage } from '@/lib/purchase';
 import { useAccountQuery, useRefetchStaleOnFocus } from '@/lib/queries';
 import { keys } from '@/lib/query-client';
@@ -31,17 +32,20 @@ export function useAccount(signedIn: boolean | null) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   useRefetchStaleOnFocus(keys.account);
+  // In a shared bucket the person chooses what happens to what they added there when the account is erased.
+  const inShared = !!useBuckets(signedIn === true).data?.some((b) => !b.personal);
 
   // Re-reads the account right away (after the deletion state changed, or for the "Coba lagi" button).
   const loadAccount = useCallback(async () => {
     await query.refetch();
   }, [query]);
 
-  async function requestDeletion() {
+  async function requestDeletion(eraseShared = false) {
+    const init = { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ eraseShared }) };
     setBusy(true);
     setMessage(null);
     try {
-      let res = await apiFetch('/account', { method: 'DELETE' });
+      let res = await apiFetch('/account', init);
       if (res.status === 401 && (await errorCode(res)) === 'reauthentication_required') {
         setMessage(t('account.reauth'));
         const problem = await login(true);
@@ -49,7 +53,7 @@ export function useAccount(signedIn: boolean | null) {
           setMessage(t('account.reauthFailed'));
           return;
         }
-        res = await apiFetch('/account', { method: 'DELETE' });
+        res = await apiFetch('/account', init);
       }
       if (res.status === 202) {
         setMessage(null);
@@ -67,12 +71,20 @@ export function useAccount(signedIn: boolean | null) {
   }
 
   function confirmDeletion() {
+    if (inShared) {
+      Alert.alert(t('account.deleteTitle'), t('account.deleteBody') + '\n\n' + t('bk.acc.body'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('bk.acc.keep'), style: 'destructive', onPress: () => requestDeletion(false) },
+        { text: t('bk.acc.erase'), style: 'destructive', onPress: () => requestDeletion(true) },
+      ]);
+      return;
+    }
     Alert.alert(
       t('account.deleteTitle'),
       t('account.deleteBody'),
       [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: t('account.deleteConfirm'), style: 'destructive', onPress: requestDeletion },
+        { text: t('account.deleteConfirm'), style: 'destructive', onPress: () => requestDeletion(false) },
       ],
     );
   }

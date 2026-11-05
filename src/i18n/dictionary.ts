@@ -1,3 +1,4 @@
+import { buckets } from '@/i18n/dict/buckets';
 import { category } from '@/i18n/dict/category';
 import { claim } from '@/i18n/dict/claim';
 import { deadlines } from '@/i18n/dict/deadlines';
@@ -21,7 +22,7 @@ export type Forms = { zero?: string; one?: string; two?: string; few?: string; m
 
 // Every text of the app, one entry per key with its three languages. Areas live in src/i18n/dict/*.ts.
 // Arabic texts were written without a native reviewer: have them checked before release.
-export const dictionary = { ...common, ...errors, ...exportDict, ...lib, ...components, ...receiptDict, ...form, ...detail, ...tabs, ...reminders, ...settings, ...category, ...deadlines, ...claim } satisfies Record<string, Entry>;
+export const dictionary = { ...common, ...errors, ...exportDict, ...lib, ...components, ...receiptDict, ...form, ...detail, ...tabs, ...reminders, ...settings, ...category, ...deadlines, ...claim, ...buckets } satisfies Record<string, Entry>;
 
 export const plurals: Record<keyof typeof pluralTexts, { id: Forms; en: Forms; ar: Forms }> = pluralTexts;
 

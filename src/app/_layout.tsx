@@ -10,6 +10,7 @@ import {
   NotoSansArabic_700Bold,
 } from '@expo-google-fonts/noto-sans-arabic';
 import { QueryClientProvider } from '@tanstack/react-query';
+import * as Linking from 'expo-linking';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { ShareIntentProvider } from 'expo-share-intent';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -24,6 +25,7 @@ import { UpdateGate } from '@/components/update-gate';
 import { loadLanguage, t, useLanguage } from '@/i18n';
 import { useAppGate } from '@/lib/app-gate';
 import { checkAppConfig } from '@/lib/app-config';
+import { setPendingInvite, tokenFromText } from '@/lib/buckets';
 import { loadAppLock, lockAfterAbsence, useAppLock } from '@/lib/app-lock';
 import { queryClient } from '@/lib/query-client';
 import { useSignedIn } from '@/lib/use-signed-in';
@@ -57,6 +59,19 @@ export default function RootLayout() {
   }, []);
   // Locked: the screens stay where they are but nothing can be touched or read until the person is recognised.
   const locked = signedIn === true && (!lock.ready || (lock.enabled && lock.locked));
+
+  // An invite link (https://.../join#CODE) is kept until the person has signed in and looked at it. The code sits after "#",
+  // so it is read here from the opened address and never goes to a server.
+  useEffect(() => {
+    const keep = (url: string | null) => {
+      if (!url || !/\/join(#|$)/.test(url)) return;
+      const code = tokenFromText(url);
+      if (code) setPendingInvite(code);
+    };
+    Linking.getInitialURL().then(keep);
+    const sub = Linking.addEventListener('url', (e) => keep(e.url));
+    return () => sub.remove();
+  }, []);
 
   // Ask the server whether this version may still be used: when the app opens and every time it comes back.
   useEffect(() => {
@@ -111,6 +126,8 @@ export default function RootLayout() {
         <Stack.Protected guard={signedIn === true}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="purchase" />
+          <Stack.Screen name="buckets" />
+          <Stack.Screen name="join" options={{ headerShown: true, title: t('bk.join.enterTitle') }} />
           <Stack.Screen name="reminder-settings" options={{ headerShown: true, title: t('set.reminders') }} />
           <Stack.Screen name="account" options={{ headerShown: true, title: t('set.account') }} />
         </Stack.Protected>

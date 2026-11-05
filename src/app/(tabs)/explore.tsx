@@ -140,6 +140,17 @@ export default function SettingsScreen() {
                   />
                 </Tile>
 
+                {/* Shared buckets */}
+                <Tile padding={Spacing.three} gap={0}>
+                  <SettingRow
+                    title={t('bk.title')}
+                    help={t('bk.settingsHelp')}
+                    chevron
+                    onPress={() => router.push('/buckets' as never)}
+                    last
+                  />
+                </Tile>
+
                 {/* Preferences */}
                 <Tile padding={Spacing.three} gap={0}>
                   <SettingRow
