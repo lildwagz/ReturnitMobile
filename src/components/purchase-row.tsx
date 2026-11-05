@@ -6,6 +6,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { Radius, SoftShadow, Spacing, TypeScale } from '@/constants/theme';
 import { t, tn } from '@/i18n';
 import { Icon } from '@/components/icon';
+import { bucketColor } from '@/components/bucket-ui';
 import { bucketLabel, useBuckets } from '@/lib/buckets';
 import { findCategory } from '@/lib/category';
 import { Purchase } from '@/lib/purchase';
@@ -46,7 +47,9 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
   const { status, numberText, unit, a11yDays } = daysDisplay(p);
   const cat = findCategory(p.category);
   // Shared buckets: the bucket's name and who added it, only when the person is in more than one bucket.
-  const sharedIn = bucketLabel(useBuckets(true).data, p.bucketId);
+  const allBuckets = useBuckets(true).data;
+  const sharedIn = bucketLabel(allBuckets, p.bucketId);
+  const sharedColor = sharedIn ? bucketColor({ id: String(p.bucketId), personal: false }) : null;
   const bucketLine = sharedIn ? (p.addedBy && !p.addedByMe ? t('bk.rowBy', { bucket: sharedIn, name: p.addedBy }) : sharedIn) : null;
   const receiptCount = p.receipts?.length ?? 0;
   const returnLeft = daysLeft(p.returnDeadline);
@@ -120,9 +123,12 @@ export function PurchaseRow({ p, onPress, onEdit, onDelete }: { p: Purchase; onP
           {receiptCount > 0 && <Icon name="paperclip" size={20} color={theme.textSecondary} decorative />}
         </View>
         {bucketLine && (
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-            {bucketLine}
-          </ThemedText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: sharedColor ?? theme.textSecondary }} />
+            <ThemedText type="small" numberOfLines={1} style={{ flexShrink: 1, color: sharedColor ?? theme.textSecondary, fontWeight: '700' }}>
+              {bucketLine}
+            </ThemedText>
+          </View>
         )}
         <View style={{ alignSelf: 'flex-start' }}>
           <StatusBadge status={status} />

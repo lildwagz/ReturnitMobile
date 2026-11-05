@@ -4,10 +4,12 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import { AppButton } from '@/components/app-button';
 import { AppTextInput } from '@/components/app-text-input';
-import { Icon } from '@/components/icon';
+import { Avatar, BucketIcon } from '@/components/bucket-ui';
+import { Icon, type FeatherName } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Radius, Spacing } from '@/constants/theme';
+import { Tile } from '@/components/tile';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
 import { InvitePreview, joinInvite, previewInvite, selectBucket, setPendingInvite, tokenFromText, usePendingInvite } from '@/lib/buckets';
@@ -15,11 +17,22 @@ import { showToast } from '@/lib/toast';
 
 type Checked = { token: string; preview?: InvitePreview; error?: string };
 
+function Fact({ icon, text }: { icon: FeatherName; text: string }) {
+  const theme = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
+      <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: theme.backgroundSelected, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name={icon} size={20} color={theme.primary} decorative />
+      </View>
+      <ThemedText style={{ flex: 1 }}>{text}</ThemedText>
+    </View>
+  );
+}
+
 // Joining a bucket: the invite comes from an opened link (kept in `pending`) or from a pasted code. The person first sees
 // which bucket it is and who invited them, and only then agrees.
 export default function JoinScreen() {
   const router = useRouter();
-  const theme = useTheme();
   const pending = usePendingInvite();
   const [typed, setTyped] = useState('');
   const [typedError, setTypedError] = useState<string | null>(null);
@@ -96,24 +109,28 @@ export default function JoinScreen() {
 
         {preview ? (
           <>
-            <View style={{ alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.three }}>
-              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: theme.backgroundElement, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="home" size={24} color={theme.primary} decorative />
+            {/* The invitation: the bucket's own icon and colour, and who is asking. */}
+            <Tile padding={Spacing.four} gap={Spacing.three}>
+              <View style={{ alignItems: 'center', gap: Spacing.three }}>
+                <BucketIcon bucket={{ id: preview.bucketId ?? preview.bucketName, personal: false }} size={64} />
+                <ThemedText accessibilityRole="header" style={{ fontWeight: '700', fontSize: 20, lineHeight: 26, textAlign: 'center' }}>
+                  {t('bk.join.title', { name: preview.bucketName })}
+                </ThemedText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+                  {preview.invitedBy && <Avatar id={preview.invitedBy} name={preview.invitedBy} size={28} />}
+                  <ThemedText type="small" themeColor="textSecondary" style={{ flexShrink: 1 }}>
+                    {preview.invitedBy
+                      ? t('bk.join.by', { name: preview.invitedBy, n: preview.memberCount })
+                      : t('bk.join.byUnknown', { n: preview.memberCount })}
+                  </ThemedText>
+                </View>
               </View>
-              <ThemedText accessibilityRole="header" type="subtitle" style={{ textAlign: 'center' }}>
-                {t('bk.join.title', { name: preview.bucketName })}
-              </ThemedText>
-              <ThemedText themeColor="textSecondary" style={{ textAlign: 'center' }}>
-                {preview.invitedBy
-                  ? t('bk.join.by', { name: preview.invitedBy, n: preview.memberCount })
-                  : t('bk.join.byUnknown', { n: preview.memberCount })}
-              </ThemedText>
-            </View>
-            <View style={{ padding: Spacing.three, borderRadius: Radius.md, backgroundColor: theme.backgroundElement }}>
-              <ThemedText type="small" themeColor="textSecondary">
-                {t('bk.join.warn')}
-              </ThemedText>
-            </View>
+            </Tile>
+            <Tile padding={Spacing.three} gap={Spacing.three}>
+              <Fact icon="eye" text={t('bk.join.fact1')} />
+              <Fact icon="edit-3" text={t('bk.join.fact2')} />
+              <Fact icon="log-out" text={t('bk.join.fact3')} />
+            </Tile>
             {preview.full && <ThemedText themeColor="errorText">{t('bk.join.full')}</ThemedText>}
             {error && (
               <ThemedText accessibilityLiveRegion="polite" themeColor="errorText">

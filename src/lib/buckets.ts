@@ -16,11 +16,13 @@ export type Bucket = {
   memberCount: number;
   purchaseCount: number;
   createdAt: string;
+  // The first few members (display names), for the avatar stack. Absent on an older server.
+  members?: { id: string; name: string }[];
 };
 
 export type Member = { id: string; name: string; role: 'owner' | 'member'; joinedAt: string; you: boolean };
 
-export type InvitePreview = { bucketName: string; invitedBy: string | null; memberCount: number; full: boolean };
+export type InvitePreview = { bucketId?: string; bucketName: string; invitedBy: string | null; memberCount: number; full: boolean };
 
 // The limits the server enforces (internal/buckets): shown so a person knows why "Join" or "Create" was refused.
 export const MAX_MEMBERS = 6;

@@ -122,6 +122,26 @@ export const buckets = {
   'bk.acc.keep': { id: 'Hapus akun, biarkan yang di bucket bersama', en: 'Delete account, keep shared items', ar: 'حذف الحساب وإبقاء العناصر المشتركة' },
   'bk.acc.erase': { id: 'Hapus akun dan yang saya tambahkan', en: 'Delete account and what I added', ar: 'حذف الحساب وما أضفته' },
 
+  // The empty list: what a bucket is, in three steps
+  'bk.heroTitle': { id: 'Garansi rumah, dikelola bersama', en: 'Home warranties, managed together', ar: 'ضمانات المنزل تُدار معًا' },
+  'bk.heroHelp': {
+    id: 'Undang keluarga atau teman serumah. Semua melihat garansi yang sama dan diingatkan sebelum habis.',
+    en: 'Invite family or housemates. Everyone sees the same warranties and is reminded before they run out.',
+    ar: 'ادعُ العائلة أو زملاء السكن. يرى الجميع الضمانات نفسها ويُذكَّرون قبل انتهائها.',
+  },
+  'bk.howTitle': { id: 'Cara kerjanya', en: 'How it works', ar: 'كيف يعمل' },
+  'bk.step1': { id: 'Buat bucket', en: 'Create a bucket', ar: 'أنشئ مجموعة' },
+  'bk.step1Help': { id: 'Beri nama, misalnya Rumah atau Kos.', en: 'Give it a name, such as Home or Boarding house.', ar: 'أعطها اسمًا، مثل المنزل أو السكن.' },
+  'bk.step2': { id: 'Undang lewat tautan', en: 'Invite with a link', ar: 'ادعُ برابط' },
+  'bk.step2Help': { id: 'Kirim lewat WhatsApp. Berlaku 7 hari.', en: 'Send it over WhatsApp. It works for 7 days.', ar: 'أرسله عبر واتساب. صالح لمدة 7 أيام.' },
+  'bk.step3': { id: 'Kelola bersama', en: 'Manage together', ar: 'أدِر معًا' },
+  'bk.step3Help': { id: 'Semua anggota bisa menambah dan mengubah.', en: 'Every member can add and change.', ar: 'يمكن لكل الأعضاء الإضافة والتعديل.' },
+  'bk.danger': { id: 'Zona berisiko', en: 'Danger zone', ar: 'منطقة الخطر' },
+  'bk.join.fact1': { id: 'Anggota melihat semua pembelian di bucket ini', en: 'Members see every purchase in this bucket', ar: 'يرى الأعضاء كل عمليات الشراء في هذه المجموعة' },
+  'bk.join.fact2': { id: 'Semua anggota bisa menambah dan mengubah', en: 'Every member can add and change', ar: 'يمكن لكل الأعضاء الإضافة والتعديل' },
+  'bk.join.fact3': { id: 'Anda bisa keluar kapan saja', en: 'You can leave at any time', ar: 'يمكنك المغادرة في أي وقت' },
+  'bk.you2': { id: '(Anda)', en: '(you)', ar: '(أنت)' },
+
   // Errors
   'bk.err.inviteGone': {
     id: 'Tautan ini sudah tidak berlaku. Minta pemilik membuat tautan baru.',

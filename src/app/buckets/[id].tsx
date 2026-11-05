@@ -5,9 +5,12 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Share, Switch, View } 
 import { AppButton } from '@/components/app-button';
 import { BottomSheet } from '@/components/bottom-sheet';
 import { DeleteBucketSheet, NameSheet } from '@/components/bucket-sheets';
+import { Avatar, BucketIcon } from '@/components/bucket-ui';
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Radius, Spacing } from '@/constants/theme';
+import { Tile } from '@/components/tile';
+import { Brand, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { t } from '@/i18n';
 import {
@@ -31,6 +34,7 @@ type InviteState = { busy: boolean; token?: string; error?: string };
 
 // A new invite is made every time the sheet opens, so the person always shares a link that works and an old one stops.
 function InviteSheet({ bucketName, state, onNew, onClose }: { bucketName: string; state: InviteState; onNew: () => void; onClose: () => void }) {
+  const theme = useTheme();
   async function share() {
     if (!state.token) return;
     try {
@@ -40,11 +44,11 @@ function InviteSheet({ bucketName, state, onNew, onClose }: { bucketName: string
     }
   }
 
-  // The code is shown in groups of four so it can be read out or typed.
-  const code = state.token ? (state.token.match(/.{1,4}/g) ?? []).join('-') : '';
+  // The code is shown in big boxes of four so it can be read out or typed.
+  const groups = state.token ? (state.token.match(/.{1,4}/g) ?? []) : [];
   return (
     <BottomSheet visible onClose={onClose} title={t('bk.inviteTitle', { name: bucketName })}>
-      <View style={{ gap: Spacing.two }}>
+      <View style={{ gap: Spacing.three }}>
         <ThemedText type="small" themeColor="textSecondary">
           {t('bk.inviteHelp', { n: MAX_MEMBERS })}
         </ThemedText>
@@ -56,9 +60,15 @@ function InviteSheet({ bucketName, state, onNew, onClose }: { bucketName: string
         )}
         {state.token && (
           <>
-            <ThemedText selectable style={{ fontWeight: '700', letterSpacing: 1 }}>
-              {t('bk.inviteCode', { code })}
-            </ThemedText>
+            <View accessible accessibilityLabel={t('bk.inviteCode', { code: groups.join(' ') })} style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.two }}>
+              {groups.map((g, i) => (
+                <View key={i} style={{ paddingVertical: 10, paddingHorizontal: 12, borderRadius: Radius.sm, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.backgroundElement }}>
+                  <ThemedText selectable style={{ fontWeight: '700', fontSize: 18, lineHeight: 24, letterSpacing: 2 }}>
+                    {g}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
             <AppButton title={t('bk.shareLink')} onPress={share} />
             <AppButton variant="secondary" title={t('bk.newLink')} onPress={onNew} />
           </>
@@ -69,12 +79,25 @@ function InviteSheet({ bucketName, state, onNew, onClose }: { bucketName: string
   );
 }
 
+function SectionLabel({ children, danger }: { children: string; danger?: boolean }) {
+  return (
+    <ThemedText
+      accessibilityRole="header"
+      type="small"
+      themeColor={danger ? 'errorText' : 'textSecondary'}
+      style={{ fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: Spacing.two }}>
+      {children}
+    </ThemedText>
+  );
+}
+
 export default function BucketScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const theme = useTheme();
   const signedIn = useSignedIn() === true;
-  const bucket = useBuckets(signedIn).data?.find((b) => b.id === id);
+  const buckets = useBuckets(signedIn).data;
+  const bucket = buckets?.find((b) => b.id === id);
   const members = useMembers(String(id), signedIn && !!bucket);
   const [invite, setInvite] = useState<InviteState | null>(null);
   const [renaming, setRenaming] = useState(false);
@@ -83,7 +106,7 @@ export default function BucketScreen() {
   const [message, setMessage] = useState<string | null>(null);
 
   // The bucket is gone (deleted, or the person left): back to the list.
-  const gone = !!useBuckets(signedIn).data && !bucket;
+  const gone = !!buckets && !bucket;
   useEffect(() => {
     if (gone) router.replace('/buckets' as never);
   }, [gone, router]);
@@ -97,26 +120,26 @@ export default function BucketScreen() {
   }
 
   const bid = bucket.id; // the guard above does not reach the closures below
+  const bname = bucket.name;
   const owner = bucket.role === 'owner';
   const list = members.data ?? [];
 
   async function startInvite() {
     setInvite({ busy: true });
-    const r = await createInvite(String(id));
+    const r = await createInvite(bid);
     setInvite(r.ok ? { busy: false, token: r.data.token } : { busy: false, error: r.error });
   }
 
   async function leave() {
     const me = list.find((m) => m.you);
-    if (!me || !bucket) return;
-    const r = await removeMember(bucket.id, me.id);
+    if (!me) return;
+    const r = await removeMember(bid, me.id);
     if (!r.ok) setMessage(r.error);
     else selectBucket(null);
   }
 
   function confirmLeave() {
-    if (!bucket) return;
-    Alert.alert(t('bk.leaveTitle', { name: bucket.name }), t('bk.leaveBody'), [
+    Alert.alert(t('bk.leaveTitle', { name: bname }), t('bk.leaveBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('bk.leave'), style: 'destructive', onPress: leave },
     ]);
@@ -152,25 +175,32 @@ export default function BucketScreen() {
   }
 
   async function toggleNotify(on: boolean) {
-    if (!bucket) return;
-    const r = await setNotify(bucket.id, on);
+    const r = await setNotify(bid, on);
     if (!r.ok) setMessage(r.error);
   }
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <Stack.Screen options={{ title: bucket.name }} />
+      <Stack.Screen options={{ title: bname }} />
       <ScrollView contentContainerStyle={{ padding: Spacing.three, gap: Spacing.three, paddingBottom: 80 }}>
-        <ThemedText type="small" themeColor="textSecondary">
-          {t('bk.counts', { members: bucket.memberCount, purchases: bucket.purchaseCount })} · {owner ? t('bk.owner') : t('bk.member')}
-        </ThemedText>
+        {/* The bucket at a glance: its icon, the counts and the one main action. */}
+        <Tile padding={Spacing.three} gap={Spacing.three}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
+            <BucketIcon bucket={bucket} size={56} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <ThemedText accessibilityRole="header" style={{ fontWeight: '700', fontSize: 20, lineHeight: 26 }} numberOfLines={2}>
+                {bname}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {t('bk.counts', { members: bucket.memberCount, purchases: bucket.purchaseCount })}
+              </ThemedText>
+            </View>
+          </View>
+          {owner && <AppButton title={t('bk.invite')} onPress={startInvite} />}
+        </Tile>
 
-        {owner && <AppButton title={t('bk.invite')} onPress={startInvite} />}
-
-        <ThemedText accessibilityRole="header" type="small" themeColor="textSecondary" style={{ fontWeight: '700' }}>
-          {t('bk.members')}
-        </ThemedText>
-        <View style={{ borderRadius: Radius.md, backgroundColor: theme.backgroundElement, borderWidth: 1, borderColor: theme.border, paddingHorizontal: Spacing.three }}>
+        <SectionLabel>{t('bk.members')}</SectionLabel>
+        <Tile padding={Spacing.three} gap={0}>
           {members.isLoading && <ActivityIndicator style={{ padding: Spacing.three }} />}
           {list.map((m, i) => {
             const roleText = m.role === 'owner' ? t('bk.owner') : t('bk.member');
@@ -182,46 +212,56 @@ export default function BucketScreen() {
                 accessibilityRole={manageable ? 'button' : undefined}
                 accessibilityLabel={t('bk.memberA11y', { name: m.name + (m.you ? ', ' + t('bk.you') : ''), role: roleText })}
                 onPress={() => setPicked(m)}
+                android_ripple={{ color: theme.primary + '1F' }}
                 style={({ pressed }) => ({
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: Spacing.three,
-                  minHeight: 56,
+                  minHeight: 60,
                   opacity: pressed ? 0.85 : 1,
                   borderBottomWidth: i === list.length - 1 ? 0 : 1,
                   borderBottomColor: theme.border,
                 })}>
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center' }}>
-                  <ThemedText style={{ color: '#FFFFFF', fontWeight: '700' }}>{m.name.slice(0, 1).toUpperCase()}</ThemedText>
-                </View>
+                <Avatar id={m.id} name={m.name} size={40} />
                 <View style={{ flex: 1 }}>
                   <ThemedText style={{ fontWeight: '700' }} numberOfLines={1}>
                     {m.name}
-                    {m.you ? ' (' + t('bk.you') + ')' : ''}
+                    {m.you ? ' ' + t('bk.you2') : ''}
                   </ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {roleText}
-                  </ThemedText>
+                  {!m.you && (
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {roleText}
+                    </ThemedText>
+                  )}
                 </View>
-                {manageable && (
-                  <ThemedText type="small" themeColor="textSecondary">
-                    ⋯
-                  </ThemedText>
+                {m.role === 'owner' ? (
+                  <View style={{ paddingHorizontal: 10, paddingVertical: 2, borderRadius: 999, backgroundColor: Brand.primarySoft }}>
+                    <ThemedText type="small" style={{ color: Brand.primaryDark, fontWeight: '700' }}>
+                      {t('bk.owner')}
+                    </ThemedText>
+                  </View>
+                ) : (
+                  manageable && <Icon name="more-horizontal" size={20} color={theme.textSecondary} decorative />
                 )}
               </Pressable>
             );
           })}
-        </View>
+        </Tile>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three, minHeight: 56 }}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <ThemedText style={{ fontWeight: '700' }}>{t('bk.notify')}</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {t('bk.notifyHelp')}
-            </ThemedText>
+        <Tile padding={Spacing.three}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
+            <View style={{ width: 40, height: 40, borderRadius: Radius.sm, backgroundColor: theme.backgroundSelected, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={bucket.notify ? 'bell' : 'bell-off'} size={20} color={theme.primary} decorative />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <ThemedText style={{ fontWeight: '700' }}>{t('bk.notify')}</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {t('bk.notifyHelp')}
+              </ThemedText>
+            </View>
+            <Switch value={bucket.notify} onValueChange={toggleNotify} accessibilityLabel={t('bk.notify')} />
           </View>
-          <Switch value={bucket.notify} onValueChange={toggleNotify} accessibilityLabel={t('bk.notify')} />
-        </View>
+        </Tile>
 
         {message && (
           <ThemedText accessibilityLiveRegion="polite" themeColor="errorText">
@@ -229,25 +269,30 @@ export default function BucketScreen() {
           </ThemedText>
         )}
 
+        <SectionLabel danger>{t('bk.danger')}</SectionLabel>
         {owner ? (
-          <>
-            <AppButton variant="secondary" title={t('bk.rename')} onPress={() => setRenaming(true)} />
-            <AppButton variant="danger" title={t('bk.delete')} onPress={() => setDeleting(true)} />
-          </>
+          <View style={{ flexDirection: 'row', gap: Spacing.two }}>
+            <View style={{ flex: 1 }}>
+              <AppButton variant="secondary" title={t('bk.rename')} onPress={() => setRenaming(true)} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppButton variant="danger" title={t('bk.delete')} onPress={() => setDeleting(true)} />
+            </View>
+          </View>
         ) : (
           <AppButton variant="danger" title={t('bk.leave')} onPress={confirmLeave} />
         )}
       </ScrollView>
 
-      {invite && <InviteSheet bucketName={bucket.name} state={invite} onNew={startInvite} onClose={() => setInvite(null)} />}
+      {invite && <InviteSheet bucketName={bname} state={invite} onNew={startInvite} onClose={() => setInvite(null)} />}
       {renaming && (
         <NameSheet
           visible
           title={t('bk.rename')}
-          initial={bucket.name}
+          initial={bname}
           actionTitle={t('bk.save')}
           onSubmit={async (name) => {
-            const r = await renameBucket(bucket.id, name);
+            const r = await renameBucket(bid, name);
             if (!r.ok) return r.error;
             setRenaming(false);
             return null;
@@ -258,9 +303,9 @@ export default function BucketScreen() {
       {deleting && (
         <DeleteBucketSheet
           visible
-          name={bucket.name}
+          name={bname}
           onConfirm={async () => {
-            const r = await deleteBucket(bucket.id, bucket.name);
+            const r = await deleteBucket(bid, bname);
             if (!r.ok) return r.error;
             selectBucket(null);
             setDeleting(false);

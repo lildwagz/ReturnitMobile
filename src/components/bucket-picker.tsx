@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { BottomSheet } from '@/components/bottom-sheet';
+import { BucketIcon } from '@/components/bucket-ui';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -38,12 +39,18 @@ export function BucketPicker({ value, onChange }: { value: string | null; onChan
           backgroundColor: theme.backgroundElement,
           opacity: pressed ? 0.85 : 1,
         })}>
-        <ThemedText>{bucketDisplayName(current)}</ThemedText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+          <BucketIcon bucket={current} size={28} />
+          <ThemedText style={{ fontWeight: '700' }}>{bucketDisplayName(current)}</ThemedText>
+        </View>
         <Icon name="chevron-down" size={20} color={theme.textSecondary} decorative />
       </Pressable>
-      <ThemedText type="small" themeColor="textSecondary">
-        {help}
-      </ThemedText>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.one, marginTop: Spacing.one }}>
+        <Icon name={current.memberCount > 1 ? 'users' : 'lock'} size={20} color={theme.textSecondary} decorative />
+        <ThemedText type="small" themeColor="textSecondary">
+          {help}
+        </ThemedText>
+      </View>
 
       <BottomSheet visible={open} onClose={() => setOpen(false)} title={t('bk.field')}>
         <ScrollView style={{ maxHeight: 420 }}>
@@ -68,7 +75,7 @@ export function BucketPicker({ value, onChange }: { value: string | null; onChan
                   paddingHorizontal: Spacing.two,
                   opacity: pressed ? 0.85 : 1,
                 })}>
-                <Icon name={b.personal ? 'user' : 'home'} size={20} color={selected ? theme.primary : theme.textSecondary} decorative />
+                <BucketIcon bucket={b} size={32} />
                 <ThemedText style={{ flex: 1, fontWeight: selected ? '700' : '400' }}>{bucketDisplayName(b)}</ThemedText>
                 {selected && <Icon name="check" size={20} color={theme.primary} decorative />}
               </Pressable>
