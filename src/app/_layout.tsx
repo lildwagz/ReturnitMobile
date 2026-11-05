@@ -128,6 +128,7 @@ export default function RootLayout() {
           <Stack.Screen name="purchase" />
           <Stack.Screen name="buckets" />
           <Stack.Screen name="join" options={{ headerShown: true, title: t('bk.join.enterTitle') }} />
+          <Stack.Screen name="reminders" options={{ headerShown: true, title: t('rem.title') }} />
           <Stack.Screen name="reminder-settings" options={{ headerShown: true, title: t('set.reminders') }} />
           <Stack.Screen name="account" options={{ headerShown: true, title: t('set.account') }} />
         </Stack.Protected>

@@ -4,6 +4,7 @@ import { I18nManager, Pressable, SectionList, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppButton } from '@/components/app-button';
+import { BellButton } from '@/components/bell-button';
 import { BucketChips } from '@/components/bucket-chips';
 import { EmptyState } from '@/components/empty-state';
 import { Icon } from '@/components/icon';
@@ -52,9 +53,16 @@ export default function DeadlinesScreen() {
             keyExtractor={(d) => d.purchaseId + d.kind}
             stickySectionHeadersEnabled={false}
             ListHeaderComponent={
-              <View style={{ gap: Spacing.one, paddingBottom: Spacing.two }}>
-                <ThemedText type="title">{t('dl.title')}</ThemedText>
-                <ThemedText themeColor="textSecondary">{t('dl.subtitle')}</ThemedText>
+              <View style={{ gap: Spacing.three, paddingBottom: Spacing.two }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
+                  <View style={{ flex: 1, gap: Spacing.one }}>
+                    <ThemedText accessibilityRole="header" type="title">
+                      {t('dl.title')}
+                    </ThemedText>
+                    <ThemedText themeColor="textSecondary">{t('dl.subtitle')}</ThemedText>
+                  </View>
+                  <BellButton />
+                </View>
                 <BucketChips />
               </View>
             }

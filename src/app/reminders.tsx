@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -166,20 +166,7 @@ export default function RemindersScreen() {
 
   const header = (
     <View style={{ gap: Spacing.two, paddingBottom: Spacing.three }}>
-      <View style={{ gap: Spacing.one }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <ThemedText type="title">{t('rem.title')}</ThemedText>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('rem.settings')}
-            hitSlop={12}
-            onPress={() => router.push('/reminder-settings' as never)}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
-            <Icon name="settings" size={24} color={theme.text} />
-          </Pressable>
-        </View>
-        <ThemedText themeColor="textSecondary">{t('rem.subtitle')}</ThemedText>
-      </View>
+      <ThemedText themeColor="textSecondary">{t('rem.subtitle')}</ThemedText>
 
       <PushOffNotice channel={prefs?.channel ?? 'push'} enabled={prefs?.enabled ?? true} />
 
@@ -194,7 +181,23 @@ export default function RemindersScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <SafeAreaView style={{ flex: 1 }}>
+      {/* Opened from the bell, above the tabs: the native header has the title and the Back button; settings sit on its right. */}
+      <Stack.Screen
+        options={{
+          title: t('rem.title'),
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('rem.settings')}
+              hitSlop={12}
+              onPress={() => router.push('/reminder-settings' as never)}
+              style={({ pressed }) => ({ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
+              <Icon name="settings" size={24} color={theme.text} />
+            </Pressable>
+          ),
+        }}
+      />
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1 }}>
         {/* Wide screens: same readable width as the lists. */}
         <View style={{ maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center', flex: 1 }}>
         <SnoozeSheet visible={snoozing !== null} choices={snoozing?.snoozeUntil ?? []} busy={snoozeBusy} onPick={snooze} onClose={() => setSnoozing(null)} />

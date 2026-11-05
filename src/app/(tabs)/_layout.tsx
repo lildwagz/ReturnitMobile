@@ -27,7 +27,7 @@ export default function TabsLayout() {
     if (signedIn) syncLanguage(language);
   }, [signedIn, language]);
 
-  // Tapping a reminder opens that item in the Pengingat tab.
+  // Tapping a reminder opens that item in the Pengingat screen (opened from the bell, above the tabs).
   useEffect(() => {
     if (!lastResponse || !signedIn) return;
     const id = lastResponse.notification.request.identifier;
