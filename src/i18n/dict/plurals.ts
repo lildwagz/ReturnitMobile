@@ -60,6 +60,11 @@ export const pluralTexts = {
     en: { one: '{n} record', other: '{n} records' },
     ar: { zero: '{n} سجل', one: 'سجل واحد', two: 'سجلان', few: '{n} سجلات', many: '{n} سجلًا', other: '{n} سجل' },
   },
+  years: {
+    id: { other: '{n} tahun' },
+    en: { one: '{n} year', other: '{n} years' },
+    ar: { zero: '{n} سنة', one: 'سنة واحدة', two: 'سنتان', few: '{n} سنوات', many: '{n} سنة', other: '{n} سنة' },
+  },
   daysBefore: {
     id: { other: '{n} hari sebelumnya' },
     en: { one: '{n} day before', other: '{n} days before' },

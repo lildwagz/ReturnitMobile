@@ -27,7 +27,20 @@ export type Purchase = {
   addedByMe?: boolean;
 };
 
-export const DURATIONS = [3, 6, 12, 24, 36];
+// The warranty lengths offered as chips, in months (60 shows as 5 years). Anything else is typed with "Other".
+export const DURATIONS = [1, 3, 6, 12, 24, 36, 60];
+
+export type DurationUnit = 'day' | 'month' | 'year';
+export const MAX_WARRANTY_YEARS = 50;
+
+// The typed length as a whole number, or null when it is not 1 or more, not whole, or longer than 50 years.
+export function parseCustomDuration(text: string, unit: DurationUnit): number | null {
+  const s = text.trim();
+  if (!/^\d{1,5}$/.test(s)) return null;
+  const n = Number(s);
+  const limit = unit === 'day' ? MAX_WARRANTY_YEARS * 366 : unit === 'month' ? MAX_WARRANTY_YEARS * 12 : MAX_WARRANTY_YEARS;
+  return n >= 1 && n <= limit ? n : null;
+}
 
 // Return periods offered in the form, in days after the purchase date.
 export const RETURN_CHOICES = [7, 14, 30];

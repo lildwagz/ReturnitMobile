@@ -8,7 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Colors, Brand, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { t, tn } from '@/i18n';
-import { DURATIONS, Purchase, RETURN_CHOICES, initialDuration, initialReturnDays, isValidDate } from '@/lib/purchase';
+import { DURATIONS, DurationUnit, Purchase, RETURN_CHOICES, initialDuration, initialReturnDays, isValidDate, parseCustomDuration } from '@/lib/purchase';
 import { addDays, addMonths, formatDate, todayLocal } from '@/lib/warranty';
 import { AppButton } from '@/components/app-button';
 import { AppTextInput, } from '@/components/app-text-input';
@@ -32,7 +32,10 @@ type Props = {
   onSubmit: (body: Record<string, unknown>, receiptUri?: string) => Promise<string | null>;
 };
 
-type Duration = number | null | 'keep';
+type Duration = number | null | 'keep' | 'custom';
+
+// The label of a duration chip: 60 months reads better as 5 years.
+const durationLabel = (m: number) => (m % 12 === 0 && m >= 60 ? tn('years', m / 12) : tn('months', m));
 
 // Order matters: the first key with an error is the one scrolled to and focused.
 const FIELD_KEYS = ['name', 'date', 'store', 'price', 'notes'] as const;
@@ -151,6 +154,8 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
   const [duration, setDuration] = useState<Duration>(initial ? initialDuration(initial) : 12); // new purchases start at 12 months, as in the prototype
   const [returnDays, setReturnDays] = useState<Duration>(initialReturnDays(initial)); // none unless the person sets it
   const [category, setCategory] = useState<string | null>(initial?.category ?? null);
+  const [customText, setCustomText] = useState('');
+  const [customUnit, setCustomUnit] = useState<DurationUnit>('month');
   // New purchases go to the bucket chosen in the switcher (the personal one when "All"); editing keeps the purchase's own.
   const switcherBucket = useSelectedBucket();
   const [bucketId, setBucketId] = useState<string | null>(initial ? (initial.bucketId ?? null) : switcherBucket);
@@ -228,6 +233,7 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
     if (!name.trim()) e.name = t('form.err.nameRequired');
     else if (name.trim().length > 160) e.name = t('form.err.nameLong');
     if (!isValidDate(date)) e.date = t('form.err.date');
+    if (duration === 'custom' && parseCustomDuration(customText, customUnit) === null) e.duration = t('form.err.customDuration');
     if (store.trim().length > 160) e.store = t('form.err.storeLong');
     if (price.trim() && !/^\d+(\.\d+)?$/.test(price.trim())) e.price = t('form.err.price');
     if (notes.trim().length > 2000) e.notes = t('form.err.notesLong');
@@ -258,6 +264,9 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
     if (typeof duration === 'number') {
       body.warrantyStartDate = date;
       body.warrantyEndDate = addMonths(date, duration);
+    } else if (duration === 'custom') {
+      body.warrantyStartDate = date;
+      body.warrantyEndDate = customEnd(date)!;
     } else if (duration === 'keep' && initial?.warrantyEndDate) {
       if (initial.warrantyStartDate) body.warrantyStartDate = initial.warrantyStartDate;
       body.warrantyEndDate = initial.warrantyEndDate;
@@ -274,10 +283,19 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
     }
   }
 
+  // The end of a typed length ("5 tahun", "90 hari"), or null while the typing is not a valid length.
+  function customEnd(from: string): string | null {
+    const n = parseCustomDuration(customText, customUnit);
+    if (n === null || !isValidDate(from)) return null;
+    return customUnit === 'day' ? addDays(from, n) : addMonths(from, customUnit === 'year' ? n * 12 : n);
+  }
+
   const endPreview =
     typeof duration === 'number' && isValidDate(date)
       ? addMonths(date, duration)
-      : duration === 'keep'
+      : duration === 'custom'
+        ? customEnd(date)
+        : duration === 'keep'
         ? initial?.warrantyEndDate
         : null;
 
@@ -325,13 +343,45 @@ export function PurchaseForm({ initial, submitLabel, withReceipt, initialReceipt
           <ThemedText type="small">{t('form.duration')}</ThemedText>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {DURATIONS.map((m) => (
-              <ChoiceChip key={m} label={tn('months', m)} selected={duration === m} onPress={() => chooseDuration(m)} />
+              <ChoiceChip key={m} label={durationLabel(m)} selected={duration === m} onPress={() => chooseDuration(m)} />
             ))}
             {initial && initialDuration(initial) === 'keep' && (
               <ChoiceChip label={t('form.keep')} selected={duration === 'keep'} onPress={() => chooseDuration('keep')} />
             )}
+            <ChoiceChip label={t('form.custom')} selected={duration === 'custom'} onPress={() => chooseDuration('custom')} />
             <ChoiceChip label={t('form.unknown')} selected={duration === null} onPress={() => chooseDuration(null)} />
           </View>
+          {duration === 'custom' && (
+            <View style={{ gap: 8, marginTop: 8 }}>
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <AppTextInput
+                  accessibilityLabel={t('form.customAmount')}
+                  style={[input, { flex: 1 }]}
+                  value={customText}
+                  onChangeText={setCustomText}
+                  placeholder={t('form.customAmount')}
+                  keyboardType="number-pad"
+                  maxLength={5}
+                  autoFocus
+                />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {(['day', 'month', 'year'] as DurationUnit[]).map((u) => (
+                  <ChoiceChip
+                    key={u}
+                    label={u === 'day' ? t('form.unitDay') : u === 'month' ? t('form.unitMonth') : t('form.unitYear')}
+                    selected={customUnit === u}
+                    onPress={() => setCustomUnit(u)}
+                  />
+                ))}
+              </View>
+              {errors.duration && (
+                <ThemedText accessibilityLiveRegion="polite" type="small" themeColor="errorText">
+                  {errors.duration}
+                </ThemedText>
+              )}
+            </View>
+          )}
           {suggested ? <ThemedText type="small" themeColor="textSecondary">{t('cat.durationHint', { duration: tn('months', suggested) })}</ThemedText> : null}
           {endPreview ? <ThemedText type="small">{t('form.warrantyEnds', { date: formatDate(endPreview) })}</ThemedText> : null}
         </View>
