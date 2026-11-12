@@ -197,7 +197,7 @@ export async function joinInvite(token: string): Promise<Result<Bucket>> {
 // ---- Invite links ----
 // The token travels after "#" so it never reaches a web server or its logs. A person may also paste only the code.
 
-export const INVITE_HOST = 'dl.20-255-48-53.sslip.io';
+export const INVITE_HOST = 'dl.returnit.online';
 
 export function inviteLink(token: string): string {
   return `https://${INVITE_HOST}/join#${token}`;

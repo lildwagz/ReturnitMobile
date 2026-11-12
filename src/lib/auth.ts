@@ -14,10 +14,10 @@ WebBrowser.maybeCompleteAuthSession();
 // unless EXPO_PUBLIC_USE_PROD=true is set when starting Metro.
 const USE_PROD = process.env.EXPO_PUBLIC_USE_PROD === 'true' || !__DEV__;
 export const ISSUER = USE_PROD
-  ? 'https://auth.20-255-48-53.sslip.io/realms/returnit'
+  ? 'https://auth.returnit.online/realms/returnit'
   : 'http://localhost:8180/realms/returnit';
 export const API = USE_PROD
-  ? 'https://api.20-255-48-53.sslip.io/api/v1'
+  ? 'https://api.returnit.online/api/v1'
   : 'http://localhost:8080/api/v1';
 
 // export const ISSUER = 'http://localhost:8180/realms/returnit';
